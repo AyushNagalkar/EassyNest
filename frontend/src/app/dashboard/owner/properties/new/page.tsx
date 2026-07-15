@@ -46,8 +46,8 @@ export default function NewPropertyPage() {
   const [amenities, setAmenities] = useState<string[]>([]);
   const [newAmenity, setNewAmenity] = useState('');
   
-  // Quick photos simulation for creation, or simple URL inputs
-  const [photoUrls, setPhotoUrls] = useState<string[]>(['']);
+  // Photo files state
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -66,10 +66,18 @@ export default function NewPropertyPage() {
         petFriendly: form.petFriendly,
         availableFrom: form.availableFrom ? new Date(form.availableFrom).toISOString() : new Date().toISOString(),
         amenities: amenities.filter(a => a.trim() !== ''),
-        photos: photoUrls.filter(url => url.trim() !== '').map((url, index) => ({ url, order: index })),
       };
 
-      await api.post('/properties', propertyBody);
+      const property = await api.post('/properties', propertyBody);
+
+      if (selectedFiles.length > 0) {
+        const formData = new FormData();
+        selectedFiles.forEach((file) => {
+          formData.append('files', file);
+        });
+        await api.post(`/upload/property/${property.id}/photos`, formData);
+      }
+
       router.push('/dashboard/owner');
     } catch (err: any) {
       alert(err.message || 'Failed to create listing');
@@ -89,18 +97,19 @@ export default function NewPropertyPage() {
     setAmenities(amenities.filter((a) => a !== item));
   }
 
-  function addPhotoField() {
-    setPhotoUrls([...photoUrls, '']);
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      if (selectedFiles.length + filesArray.length > 10) {
+        alert('You can upload a maximum of 10 photos');
+        return;
+      }
+      setSelectedFiles([...selectedFiles, ...filesArray]);
+    }
   }
 
-  function updatePhotoUrl(index: number, value: string) {
-    const next = [...photoUrls];
-    next[index] = value;
-    setPhotoUrls(next);
-  }
-
-  function removePhotoField(index: number) {
-    setPhotoUrls(photoUrls.filter((_, i) => i !== index));
+  function removeSelectedFile(index: number) {
+    setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
   }
 
   return (
@@ -181,20 +190,38 @@ export default function NewPropertyPage() {
 
         {/* Photos Section */}
         <div className="space-y-3">
-          <label className="block text-sm font-medium text-[var(--foreground)]">Photo URLs</label>
-          {photoUrls.map((url, index) => (
-            <div key={index} className="flex gap-2 items-center">
-              <Input placeholder="https://example.com/photo.jpg" value={url} onChange={(e) => updatePhotoUrl(index, e.target.value)} required />
-              {photoUrls.length > 1 && (
-                <Button type="button" variant="outline" size="icon" onClick={() => removePhotoField(index)} className="text-[var(--destructive)] hover:bg-[var(--destructive-light)]">
-                  <Trash className="h-4 w-4" />
-                </Button>
-              )}
+          <label className="block text-sm font-medium text-[var(--foreground)]">Property Photos (Max 10)</label>
+          
+          <div className="flex items-center justify-center w-full">
+            <label className="flex flex-col items-center justify-center w-full h-32 border border-[var(--border)] border-dashed rounded-[var(--radius-lg)] cursor-pointer bg-[var(--surface)] hover:bg-[var(--surface-hover)] transition-colors">
+              <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                <Plus className="w-8 h-8 text-[var(--foreground-muted)] mb-2" />
+                <p className="mb-2 text-sm text-[var(--foreground-secondary)]"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                <p className="text-xs text-[var(--foreground-muted)]">PNG, JPG or WEBP (Max. 5MB per file)</p>
+              </div>
+              <input type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
+            </label>
+          </div>
+
+          {selectedFiles.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 pt-2">
+              {selectedFiles.map((file, index) => {
+                const url = URL.createObjectURL(file);
+                return (
+                  <div key={index} className="relative aspect-video rounded-[var(--radius)] overflow-hidden border border-[var(--border)] group">
+                    <img src={url} alt={`Preview ${index}`} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeSelectedFile(index)}
+                      className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 transition-colors"
+                    >
+                      <Trash className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
-          ))}
-          <Button type="button" variant="outline" onClick={addPhotoField} className="w-full gap-1">
-            <Plus className="h-4 w-4" /> Add Photo URL
-          </Button>
+          )}
         </div>
 
         <Button type="submit" disabled={saving} className="w-full gap-2">

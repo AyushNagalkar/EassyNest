@@ -60,9 +60,13 @@ class ApiClient {
     const { skipAuth, headers: extraHeaders, ...rest } = options;
 
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
       ...(extraHeaders as Record<string, string>),
     };
+
+    if (!(rest.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
+
 
     if (!skipAuth && this.accessToken) {
       headers['Authorization'] = `Bearer ${this.accessToken}`;
@@ -98,11 +102,21 @@ class ApiClient {
   }
 
   post<T = any>(endpoint: string, body?: any, options?: FetchOptions) {
-    return this.fetch<T>(endpoint, { method: 'POST', body: body ? JSON.stringify(body) : undefined, ...options });
+    const isFormData = typeof window !== 'undefined' && body instanceof FormData;
+    return this.fetch<T>(endpoint, {
+      method: 'POST',
+      body: isFormData ? body : (body ? JSON.stringify(body) : undefined),
+      ...options
+    });
   }
 
   patch<T = any>(endpoint: string, body?: any, options?: FetchOptions) {
-    return this.fetch<T>(endpoint, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined, ...options });
+    const isFormData = typeof window !== 'undefined' && body instanceof FormData;
+    return this.fetch<T>(endpoint, {
+      method: 'PATCH',
+      body: isFormData ? body : (body ? JSON.stringify(body) : undefined),
+      ...options
+    });
   }
 
   delete<T = any>(endpoint: string, options?: FetchOptions) {

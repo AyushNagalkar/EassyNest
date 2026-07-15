@@ -1,0 +1,2 @@
+postgresql://postgres.jsekreqwnplogiwhvwus:Ayush22310195@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true# From your local /backend folder, run against the production database
+DATABASE_URL="postgresql://postgres.jsekreqwnplogiwhvwus:Ayush22310195@aws-0-ap-southeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true" DIRECT_URL="https://eassynest-4.onrender.com" npx prisma migrate deploy

@@ -47,7 +47,8 @@ export default function EditPropertyPage() {
 
   const [amenities, setAmenities] = useState<string[]>([]);
   const [newAmenity, setNewAmenity] = useState('');
-  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [existingPhotos, setExistingPhotos] = useState<{ id: string; url: string; order: number }[]>([]);
+  const [newFiles, setNewFiles] = useState<File[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -67,7 +68,7 @@ export default function EditPropertyPage() {
           availableFrom: data.availableFrom ? new Date(data.availableFrom).toISOString().split('T')[0] : '',
         });
         setAmenities(data.amenities || []);
-        setPhotoUrls(data.photos?.map((p: any) => p.url) || ['']);
+        setExistingPhotos(data.photos || []);
       } catch (err) {
         console.error('Failed to load property:', err);
       } finally {
@@ -94,10 +95,18 @@ export default function EditPropertyPage() {
         petFriendly: form.petFriendly,
         availableFrom: form.availableFrom ? new Date(form.availableFrom).toISOString() : new Date().toISOString(),
         amenities: amenities.filter(a => a.trim() !== ''),
-        photos: photoUrls.filter(url => url.trim() !== '').map((url, index) => ({ url, order: index })),
       };
 
       await api.patch(`/properties/${id}`, propertyBody);
+
+      if (newFiles.length > 0) {
+        const formData = new FormData();
+        newFiles.forEach((file) => {
+          formData.append('files', file);
+        });
+        await api.post(`/upload/property/${id}/photos`, formData);
+      }
+
       router.push('/dashboard/owner');
     } catch (err: any) {
       alert(err.message || 'Failed to update listing');
@@ -117,18 +126,29 @@ export default function EditPropertyPage() {
     setAmenities(amenities.filter((a) => a !== item));
   }
 
-  function addPhotoField() {
-    setPhotoUrls([...photoUrls, '']);
+  async function deleteExistingPhoto(photoId: string) {
+    if (!confirm('Are you sure you want to delete this photo?')) return;
+    try {
+      await api.delete(`/upload/photo/${photoId}`);
+      setExistingPhotos(existingPhotos.filter((p) => p.id !== photoId));
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete photo');
+    }
   }
 
-  function updatePhotoUrl(index: number, value: string) {
-    const next = [...photoUrls];
-    next[index] = value;
-    setPhotoUrls(next);
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      if (existingPhotos.length + newFiles.length + filesArray.length > 10) {
+        alert('You can upload a maximum of 10 photos');
+        return;
+      }
+      setNewFiles([...newFiles, ...filesArray]);
+    }
   }
 
-  function removePhotoField(index: number) {
-    setPhotoUrls(photoUrls.filter((_, i) => i !== index));
+  function removeNewFile(index: number) {
+    setNewFiles(newFiles.filter((_, i) => i !== index));
   }
 
   if (loading) {
@@ -217,21 +237,65 @@ export default function EditPropertyPage() {
         </div>
 
         {/* Photos Section */}
-        <div className="space-y-3">
-          <label className="block text-sm font-medium text-[var(--foreground)]">Photo URLs</label>
-          {photoUrls.map((url, index) => (
-            <div key={index} className="flex gap-2 items-center">
-              <Input placeholder="https://example.com/photo.jpg" value={url} onChange={(e) => updatePhotoUrl(index, e.target.value)} required />
-              {photoUrls.length > 1 && (
-                <Button type="button" variant="outline" size="icon" onClick={() => removePhotoField(index)} className="text-[var(--destructive)] hover:bg-[var(--destructive-light)]">
-                  <Trash className="h-4 w-4" />
-                </Button>
-              )}
+        <div className="space-y-4">
+          <label className="block text-sm font-medium text-[var(--foreground)] font-semibold">Property Photos (Max 10)</label>
+          
+          {/* Existing Photos */}
+          {existingPhotos.length > 0 && (
+            <div className="space-y-2">
+              <span className="text-xs font-semibold text-[var(--foreground-secondary)]">Existing Photos</span>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {existingPhotos.map((photo) => (
+                  <div key={photo.id} className="relative aspect-video rounded-[var(--radius)] overflow-hidden border border-[var(--border)] group">
+                    <img src={photo.url} alt="Property" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => deleteExistingPhoto(photo.id)}
+                      className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 transition-colors animate-fade-in"
+                    >
+                      <Trash className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
-          <Button type="button" variant="outline" onClick={addPhotoField} className="w-full gap-1">
-            <Plus className="h-4 w-4" /> Add Photo URL
-          </Button>
+          )}
+
+          {/* Upload Zone */}
+          <div className="space-y-2 pt-2">
+            <span className="text-xs font-semibold text-[var(--foreground-secondary)]">Upload New Photos</span>
+            <div className="flex items-center justify-center w-full">
+              <label className="flex flex-col items-center justify-center w-full h-32 border border-[var(--border)] border-dashed rounded-[var(--radius-lg)] cursor-pointer bg-[var(--surface)] hover:bg-[var(--surface-hover)] transition-colors">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <Plus className="w-8 h-8 text-[var(--foreground-muted)] mb-2" />
+                  <p className="mb-2 text-sm text-[var(--foreground-secondary)]"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                  <p className="text-xs text-[var(--foreground-muted)]">PNG, JPG or WEBP (Max. 5MB per file)</p>
+                </div>
+                <input type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
+              </label>
+            </div>
+          </div>
+
+          {/* New Files Previews */}
+          {newFiles.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 pt-2">
+              {newFiles.map((file, index) => {
+                const url = URL.createObjectURL(file);
+                return (
+                  <div key={index} className="relative aspect-video rounded-[var(--radius)] overflow-hidden border border-[var(--border)] group">
+                    <img src={url} alt={`New Preview ${index}`} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeNewFile(index)}
+                      className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 transition-colors"
+                    >
+                      <Trash className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <Button type="submit" disabled={saving} className="w-full gap-2">
