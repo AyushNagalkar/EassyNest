@@ -1,3 +1,18 @@
+# 🏠 EassyNest — AI-Powered Rent & Flatmate Finder
+
+<p align="center">
+
+<a href="https://eassy-nest.vercel.app/" target="_blank">
+  <img src="https://img.shields.io/badge/%20Live%20Demo-Visit%20Website-4F46E5?style=for-the-badge" />
+</a>
+
+<a href="https://github.com/YOUR_USERNAME/YOUR_REPO">
+  <img src="https://img.shields.io/badge/GitHub-Repository-black?style=for-the-badge&logo=github" />
+</a>
+
+</p>
+
+
 # EassyNest — Rent & Flatmate Finder
 
 EassyNest is a modern, AI-powered property listing and flatmate discovery platform designed to solve the age-old problem of roommate matching. Rather than focusing solely on listing characteristics, EassyNest emphasizes lifestyle, location, and budget alignment to ensure seamless co-living.
