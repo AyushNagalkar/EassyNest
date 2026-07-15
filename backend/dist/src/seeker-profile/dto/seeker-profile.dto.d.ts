@@ -48,4 +48,5 @@ export declare class SeekerQueryDto {
     radiusKm?: number;
     page?: number;
     limit?: number;
+    sortBy?: string;
 }

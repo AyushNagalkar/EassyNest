@@ -63,7 +63,8 @@ export declare class SeekerProfileService {
         age: number | null;
         userId: string;
     }>;
-    findById(id: string): Promise<{
+    findById(id: string, userId?: string): Promise<{
+        compatibilityScore: any;
         user: {
             id: string;
             name: string;
@@ -74,7 +75,6 @@ export declare class SeekerProfileService {
                 reviewsReceived: number;
             };
         };
-    } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -126,15 +126,15 @@ export declare class SeekerProfileService {
         age: number | null;
         userId: string;
     }>;
-    browse(query: SeekerQueryDto): Promise<{
-        data: ({
+    browse(query: SeekerQueryDto, userId?: string): Promise<{
+        data: {
+            compatibilityScore: any;
             user: {
                 id: string;
                 name: string;
                 avatarUrl: string | null;
                 emailVerified: boolean;
             };
-        } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
@@ -156,7 +156,7 @@ export declare class SeekerProfileService {
             occupation: string | null;
             age: number | null;
             userId: string;
-        })[];
+        }[];
         meta: {
             total: number;
             page: number;

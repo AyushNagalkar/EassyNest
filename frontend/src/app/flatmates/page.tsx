@@ -17,6 +17,8 @@ import {
   Users, SlidersHorizontal, X, Map, List, MapPin, Calendar, Wallet,
   ChevronLeft, ChevronRight,
 } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
+import { CompatibilityBadge } from '@/components/ui/compatibility-badge';
 
 export default function BrowseFlatmatesPage() {
   const [seekers, setSeekers] = useState<any[]>([]);
@@ -26,14 +28,17 @@ export default function BrowseFlatmatesPage() {
   const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const [sortBy, setSortBy] = useState('recency');
+  const { user } = useAuth();
 
-  const activeFilterCount = city ? 1 : 0;
+  const activeFilterCount = (city ? 1 : 0) + (sortBy !== 'recency' ? 1 : 0);
 
   const fetchSeekers = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (city) params.set('city', city);
+      if (sortBy) params.set('sortBy', sortBy);
       params.set('page', String(page));
       params.set('limit', '12');
       const data = await api.get(`/seekers?${params.toString()}`);
@@ -44,10 +49,10 @@ export default function BrowseFlatmatesPage() {
     } finally {
       setLoading(false);
     }
-  }, [city, page]);
+  }, [city, sortBy, page]);
 
   useEffect(() => { fetchSeekers(); }, [fetchSeekers]);
-  useEffect(() => { setPage(1); }, [city]);
+  useEffect(() => { setPage(1); }, [city, sortBy]);
 
   const markers = seekers
     .filter((s) => s.preferredLat && s.preferredLng)
@@ -109,9 +114,25 @@ export default function BrowseFlatmatesPage() {
           <AnimatePresence>
             {filtersOpen && (
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
-                <div className="flex gap-3 pt-4">
-                  <Input placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} className="max-w-xs" />
-                  <Button variant="ghost" size="sm" onClick={() => setCity('')} className="gap-1 h-10"><X className="h-3 w-3" /> Clear</Button>
+                <div className="flex gap-4 pt-4 items-end flex-wrap">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-[var(--foreground-secondary)]">Preferred City</label>
+                    <Input placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} className="max-w-xs" />
+                  </div>
+                  {user?.role === 'TENANT' && (
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-semibold text-[var(--foreground-secondary)]">Sort By</label>
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="h-10 px-3 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+                      >
+                        <option value="recency">Most Recent</option>
+                        <option value="score">Match Score</option>
+                      </select>
+                    </div>
+                  )}
+                  <Button variant="ghost" size="sm" onClick={() => { setCity(''); setSortBy('recency'); }} className="gap-1 h-10"><X className="h-3 w-3" /> Clear All</Button>
                 </div>
               </motion.div>
             )}
@@ -159,7 +180,12 @@ export default function BrowseFlatmatesPage() {
                                 <MapPin className="h-3 w-3" /> {seeker.preferredCity}
                               </p>
                             </div>
-                            <Badge variant="flatmate" size="sm">{seeker.type?.replace('_', ' ')}</Badge>
+                            <div className="flex flex-col items-end gap-1.5 shrink-0">
+                              <Badge variant="flatmate" size="sm">{seeker.type?.replace('_', ' ')}</Badge>
+                              {seeker.compatibilityScore && (
+                                <CompatibilityBadge score={seeker.compatibilityScore.score} explanation={seeker.compatibilityScore.explanation} size="sm" />
+                              )}
+                            </div>
                           </div>
                           {seeker.bio && (
                             <p className="text-xs text-[var(--foreground-secondary)] mt-3 line-clamp-2 leading-relaxed">{seeker.bio}</p>

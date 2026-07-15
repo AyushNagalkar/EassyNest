@@ -44,7 +44,7 @@ export default function RegisterPage() {
         <div className="card card-ambient p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex h-12 w-12 rounded-[var(--radius-lg)] bg-gradient-to-br from-[var(--primary)] to-[#7C3AED] items-center justify-center mb-4">
+            <div className="inline-flex h-12 w-12 rounded-[var(--radius-lg)] bg-gradient-to-br from-[var(--primary)] to-[var(--primary-gradient-to)] items-center justify-center mb-4">
               <Home className="h-6 w-6 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-[var(--foreground)]">Create your account</h1>

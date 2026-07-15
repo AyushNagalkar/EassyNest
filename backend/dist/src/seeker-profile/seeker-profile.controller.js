@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SeekerProfileController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
+const optional_jwt_auth_guard_js_1 = require("../auth/guards/optional-jwt-auth.guard.js");
 const seeker_profile_service_js_1 = require("./seeker-profile.service.js");
 const seeker_profile_dto_js_1 = require("./dto/seeker-profile.dto.js");
 const jwt_auth_guard_js_1 = require("../auth/guards/jwt-auth.guard.js");
@@ -36,11 +37,13 @@ let SeekerProfileController = class SeekerProfileController {
     async update(userId, dto) {
         return this.seekerProfileService.update(userId, dto);
     }
-    async browse(query) {
-        return this.seekerProfileService.browse(query);
+    async browse(query, req) {
+        const user = req.user;
+        return this.seekerProfileService.browse(query, user?.id);
     }
-    async findOne(id) {
-        return this.seekerProfileService.findById(id);
+    async findOne(id, req) {
+        const user = req.user;
+        return this.seekerProfileService.findById(id, user?.id);
     }
 };
 exports.SeekerProfileController = SeekerProfileController;
@@ -81,18 +84,22 @@ __decorate([
 ], SeekerProfileController.prototype, "update", null);
 __decorate([
     (0, common_1.Get)('seekers'),
+    (0, common_1.UseGuards)(optional_jwt_auth_guard_js_1.OptionalJwtAuthGuard),
     (0, swagger_1.ApiOperation)({ summary: 'Browse public flatmate-seeker profiles' }),
     __param(0, (0, common_1.Query)()),
+    __param(1, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [seeker_profile_dto_js_1.SeekerQueryDto]),
+    __metadata("design:paramtypes", [seeker_profile_dto_js_1.SeekerQueryDto, Object]),
     __metadata("design:returntype", Promise)
 ], SeekerProfileController.prototype, "browse", null);
 __decorate([
     (0, common_1.Get)('seekers/:id'),
+    (0, common_1.UseGuards)(optional_jwt_auth_guard_js_1.OptionalJwtAuthGuard),
     (0, swagger_1.ApiOperation)({ summary: 'Get seeker profile details' }),
     __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], SeekerProfileController.prototype, "findOne", null);
 exports.SeekerProfileController = SeekerProfileController = __decorate([

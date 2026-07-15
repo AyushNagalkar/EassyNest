@@ -253,4 +253,9 @@ export class SeekerQueryDto {
   @Min(1)
   @Max(50)
   limit?: number;
+
+  @ApiPropertyOptional({ enum: ['recency', 'score'], default: 'recency' })
+  @IsOptional()
+  @IsString()
+  sortBy?: string;
 }

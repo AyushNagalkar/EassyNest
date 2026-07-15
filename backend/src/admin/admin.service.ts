@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Prisma } from '@prisma/client';
 
@@ -278,5 +278,162 @@ export class AdminService {
       .join('\n');
 
     return header + rows;
+  }
+
+  async deleteUser(userId: string, adminId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    await this.prisma.$transaction(async (tx) => {
+      // 1. Delete reviews
+      await tx.review.deleteMany({
+        where: { OR: [{ authorId: userId }, { targetId: userId }] },
+      });
+
+      // 2. Delete flags
+      await tx.flag.deleteMany({
+        where: { creatorId: userId },
+      });
+
+      // 3. Delete favorites
+      await tx.favorite.deleteMany({
+        where: { userId },
+      });
+
+      // 4. Delete notifications
+      await tx.notification.deleteMany({
+        where: { userId },
+      });
+
+      // 5. Delete saved searches
+      await tx.savedSearch.deleteMany({
+        where: { userId },
+      });
+
+      // 6. Delete seeker profile & its related scores/interests
+      const seekerProfile = await tx.seekerProfile.findUnique({
+        where: { userId },
+      });
+      if (seekerProfile) {
+        await tx.compatibilityScore.deleteMany({
+          where: {
+            OR: [
+              { seekerProfileId: seekerProfile.id },
+              { targetSeekerProfileId: seekerProfile.id },
+            ],
+          },
+        });
+
+        const targetInterests = await tx.interest.findMany({
+          where: { targetType: 'SEEKER_PROFILE', targetSeekerProfileId: seekerProfile.id },
+          select: { id: true },
+        });
+        const targetInterestIds = targetInterests.map((i) => i.id);
+
+        if (targetInterestIds.length > 0) {
+          await tx.message.deleteMany({
+            where: { chatRoom: { interestId: { in: targetInterestIds } } },
+          });
+          await tx.chatRoom.deleteMany({
+            where: { interestId: { in: targetInterestIds } },
+          });
+          await tx.interest.deleteMany({
+            where: { id: { in: targetInterestIds } },
+          });
+        }
+
+        await tx.seekerProfile.delete({
+          where: { id: seekerProfile.id },
+        });
+      }
+
+      // 7. Delete owned properties & their related photos/scores/interests/views/flags/favorites
+      const properties = await tx.property.findMany({
+        where: { ownerId: userId },
+        select: { id: true },
+      });
+      const propertyIds = properties.map((p) => p.id);
+
+      if (propertyIds.length > 0) {
+        await tx.propertyPhoto.deleteMany({
+          where: { propertyId: { in: propertyIds } },
+        });
+        await tx.compatibilityScore.deleteMany({
+          where: { targetType: 'PROPERTY', targetPropertyId: { in: propertyIds } },
+        });
+        await tx.propertyView.deleteMany({
+          where: { propertyId: { in: propertyIds } },
+        });
+        await tx.favorite.deleteMany({
+          where: { propertyId: { in: propertyIds } },
+        });
+        await tx.flag.deleteMany({
+          where: { propertyId: { in: propertyIds } },
+        });
+
+        const propertyInterests = await tx.interest.findMany({
+          where: { targetType: 'PROPERTY', targetPropertyId: { in: propertyIds } },
+          select: { id: true },
+        });
+        const propInterestIds = propertyInterests.map((i) => i.id);
+
+        if (propInterestIds.length > 0) {
+          await tx.message.deleteMany({
+            where: { chatRoom: { interestId: { in: propInterestIds } } },
+          });
+          await tx.chatRoom.deleteMany({
+            where: { interestId: { in: propInterestIds } },
+          });
+          await tx.interest.deleteMany({
+            where: { id: { in: propInterestIds } },
+          });
+        }
+
+        await tx.property.deleteMany({
+          where: { id: { in: propertyIds } },
+        });
+      }
+
+      // 8. Delete sent interests
+      const sentInterests = await tx.interest.findMany({
+        where: { fromUserId: userId },
+        select: { id: true },
+      });
+      const sentInterestIds = sentInterests.map((i) => i.id);
+
+      if (sentInterestIds.length > 0) {
+        await tx.message.deleteMany({
+          where: { chatRoom: { interestId: { in: sentInterestIds } } },
+        });
+        await tx.chatRoom.deleteMany({
+          where: { interestId: { in: sentInterestIds } },
+        });
+        await tx.interest.deleteMany({
+          where: { id: { in: sentInterestIds } },
+        });
+      }
+
+      // 9. Delete messages sent by user
+      await tx.message.deleteMany({
+        where: { senderId: userId },
+      });
+
+      // 10. Delete the user
+      await tx.user.delete({
+        where: { id: userId },
+      });
+    });
+
+    // Log admin action
+    await this.prisma.adminActivityLog.create({
+      data: {
+        actorId: adminId,
+        action: 'DELETE_USER',
+        targetType: 'USER',
+        targetId: userId,
+      },
+    });
+
+    return { message: 'User and all associated data permanently deleted' };
   }
 }

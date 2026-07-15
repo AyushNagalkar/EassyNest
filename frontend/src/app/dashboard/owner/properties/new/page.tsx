@@ -12,15 +12,16 @@ import { MapView } from '@/components/map-view';
 import { ArrowLeft, Save, Plus, Trash } from 'lucide-react';
 
 const ROOM_TYPES = [
-  { value: 'SINGLE', label: 'Single Room' },
-  { value: 'SHARED', label: 'Shared Room' },
+  { value: 'SINGLE_ROOM', label: 'Single Room' },
+  { value: 'SHARED_ROOM', label: 'Shared Room' },
   { value: 'ONE_BHK', label: '1 BHK' },
   { value: 'TWO_BHK', label: '2 BHK' },
   { value: 'STUDIO', label: 'Studio' },
+  { value: 'PG', label: 'PG' },
 ];
 
 const FURNISHING_TYPES = [
-  { value: 'FULLY_FURNISHED', label: 'Fully Furnished' },
+  { value: 'FURNISHED', label: 'Furnished' },
   { value: 'SEMI_FURNISHED', label: 'Semi Furnished' },
   { value: 'UNFURNISHED', label: 'Unfurnished' },
 ];
@@ -37,8 +38,8 @@ export default function NewPropertyPage() {
     city: '',
     lat: '12.9716',
     lng: '77.5946',
-    roomType: 'SINGLE',
-    furnishing: 'SEMI_FURNISHED',
+    roomType: 'SINGLE_ROOM',
+    furnishing: 'FURNISHED',
     petFriendly: false,
     availableFrom: '',
   });
@@ -93,6 +94,27 @@ export default function NewPropertyPage() {
     }
   }
 
+  async function handleSearchAddress(addr: string) {
+    if (!addr) return;
+    try {
+      const cityQuery = form.city ? `, ${form.city}` : '';
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(
+          addr + cityQuery
+        )}`
+      );
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        setForm((prev) => ({ ...prev, lat, lng: lon }));
+      } else {
+        alert('Address not found. Try search using city, or click directly on the map to place the marker.');
+      }
+    } catch (err) {
+      console.error('Geocoding failed:', err);
+    }
+  }
+
   function removeAmenity(item: string) {
     setAmenities(amenities.filter((a) => a !== item));
   }
@@ -144,22 +166,34 @@ export default function NewPropertyPage() {
           <Select label="Furnishing" options={FURNISHING_TYPES} value={form.furnishing} onChange={(e) => setForm({ ...form, furnishing: e.target.value })} />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Input label="Address" placeholder="e.g. 5th Block, Koramangala" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} required />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5 flex flex-col justify-end">
+            <div className="flex gap-2 items-end">
+              <div className="flex-1">
+                <Input label="Address" placeholder="e.g. 5th Block, Koramangala" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} required />
+              </div>
+              <Button type="button" onClick={() => handleSearchAddress(form.address)} variant="secondary" className="h-10">
+                Find on Map
+              </Button>
+            </div>
+          </div>
           <Input label="City" placeholder="e.g. Bangalore" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} required />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Input label="Latitude" type="number" step="any" placeholder="12.9716" value={form.lat} onChange={(e) => setForm({ ...form, lat: e.target.value })} />
-          <Input label="Longitude" type="number" step="any" placeholder="77.5946" value={form.lng} onChange={(e) => setForm({ ...form, lng: e.target.value })} />
-        </div>
-
-        {form.lat && form.lng && (
-          <div className="h-48 rounded-[var(--radius-lg)] overflow-hidden">
-            <MapView center={[parseFloat(form.lat), parseFloat(form.lng)]} zoom={13} className="h-full" />
+        <div className="h-56 rounded-[var(--radius-lg)] overflow-hidden border border-[var(--border)] relative">
+          <MapView
+            center={[parseFloat(form.lat || '12.9716'), parseFloat(form.lng || '77.5946')]}
+            zoom={13}
+            markers={form.lat && form.lng ? [{ id: 'pinned', lat: parseFloat(form.lat), lng: parseFloat(form.lng), label: 'Selected Location' }] : []}
+            onMapClick={(lat, lng) => {
+              setForm((prev) => ({ ...prev, lat: lat.toString(), lng: lng.toString() }));
+            }}
+            className="h-full"
+          />
+          <div className="absolute bottom-2 left-2 z-10 bg-black/70 px-2 py-1 rounded text-[10px] text-white pointer-events-none">
+            Click on the map to pin listing location manually
           </div>
-        )}
-
+        </div>
         <div className="flex items-center gap-2">
           <input
             id="petFriendly"

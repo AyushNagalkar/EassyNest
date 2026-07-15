@@ -108,7 +108,7 @@ export class InterestsService {
         // If score > 80, send email to owner
         if (score && score >= 80) {
           const emailPayload = this.emailService.interestReceivedEmail(
-            targetName, fromUser.name, contextTitle, score,
+            targetName, fromUser.name, interest.targetProperty, score,
           );
           emailPayload.to = targetEmail;
           await this.emailService.sendEmail(emailPayload);
@@ -199,7 +199,7 @@ export class InterestsService {
       data: { status: 'ACCEPTED', respondedAt: new Date() },
       include: {
         fromUser: { select: { id: true, name: true, email: true } },
-        targetProperty: true,
+        targetProperty: { include: { owner: { select: { id: true, name: true } } } },
         targetSeekerProfile: { include: { user: true } },
       },
     });
@@ -225,7 +225,7 @@ export class InterestsService {
     if (updated.targetProperty) {
       const email = this.emailService.interestAcceptedEmail(
         updated.fromUser.name,
-        updated.targetProperty.title,
+        updated.targetProperty,
         interestId,
       );
       email.to = updated.fromUser.email;
@@ -264,7 +264,7 @@ export class InterestsService {
     if (updated.targetProperty) {
       const email = this.emailService.interestDeclinedEmail(
         updated.fromUser.name,
-        updated.targetProperty.title,
+        updated.targetProperty,
       );
       email.to = updated.fromUser.email;
       await this.emailService.sendEmail(email);

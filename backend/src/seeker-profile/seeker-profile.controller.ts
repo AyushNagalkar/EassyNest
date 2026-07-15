@@ -7,8 +7,11 @@ import {
   Param,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import type { Request } from 'express';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard.js';
 import { SeekerProfileService } from './seeker-profile.service.js';
 import {
   CreateSeekerProfileDto,
@@ -60,14 +63,18 @@ export class SeekerProfileController {
   }
 
   @Get('seekers')
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'Browse public flatmate-seeker profiles' })
-  async browse(@Query() query: SeekerQueryDto) {
-    return this.seekerProfileService.browse(query);
+  async browse(@Query() query: SeekerQueryDto, @Req() req: Request) {
+    const user = (req as any).user;
+    return this.seekerProfileService.browse(query, user?.id);
   }
 
   @Get('seekers/:id')
+  @UseGuards(OptionalJwtAuthGuard)
   @ApiOperation({ summary: 'Get seeker profile details' })
-  async findOne(@Param('id') id: string) {
-    return this.seekerProfileService.findById(id);
+  async findOne(@Param('id') id: string, @Req() req: Request) {
+    const user = (req as any).user;
+    return this.seekerProfileService.findById(id, user?.id);
   }
 }

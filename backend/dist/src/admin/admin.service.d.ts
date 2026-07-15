@@ -168,4 +168,7 @@ export declare class AdminService {
     }>;
     exportUsersCsv(): Promise<string>;
     exportListingsCsv(): Promise<string>;
+    deleteUser(userId: string, adminId: string): Promise<{
+        message: string;
+    }>;
 }

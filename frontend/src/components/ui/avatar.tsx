@@ -38,7 +38,7 @@ export function Avatar({ src, name, size = 'md', showStatus, online, className }
     <div
       className={cn(
         'rounded-full flex items-center justify-center font-semibold shrink-0',
-        'bg-gradient-to-br from-[var(--primary)] to-[#7C3AED] text-white',
+        'bg-gradient-to-br from-[var(--primary)] to-[var(--primary-gradient-to)] text-white',
         dimensions,
         className,
       )}

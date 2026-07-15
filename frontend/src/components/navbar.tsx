@@ -63,7 +63,7 @@ export function Navbar() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="relative h-9 w-9 rounded-[var(--radius)] bg-gradient-to-br from-[var(--primary)] to-[#7C3AED] flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
+             <div className="relative h-9 w-9 rounded-[var(--radius)] bg-gradient-to-br from-[var(--primary)] to-[var(--primary-gradient-to)] flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
               <Home className="h-4.5 w-4.5 text-white" />
             </div>
             <span className="text-lg font-bold tracking-tight text-[var(--foreground)] group-hover:text-[var(--primary)] transition-colors">

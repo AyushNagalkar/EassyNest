@@ -35,7 +35,7 @@ export default function LoginPage() {
   return (
     <div className="flex-1 flex min-h-0">
       {/* Left side — Illustration panel (desktop only) */}
-      <div className="hidden lg:flex lg:w-[45%] relative overflow-hidden bg-gradient-to-br from-[var(--primary)] to-[#7C3AED]">
+      <div className="hidden lg:flex lg:w-[45%] relative overflow-hidden bg-gradient-to-br from-[var(--primary)] to-[var(--primary-gradient-to)]">
         {/* Floating orbs */}
         <div className="absolute top-20 left-10 w-64 h-64 rounded-full bg-white/10 blur-3xl animate-float" />
         <div className="absolute bottom-20 right-10 w-80 h-80 rounded-full bg-white/5 blur-3xl animate-float" style={{ animationDelay: '1.5s' }} />
@@ -72,7 +72,7 @@ export default function LoginPage() {
           <div className="card card-ambient p-8">
             {/* Header */}
             <div className="text-center mb-8">
-              <div className="lg:hidden inline-flex h-12 w-12 rounded-[var(--radius-lg)] bg-gradient-to-br from-[var(--primary)] to-[#7C3AED] items-center justify-center mb-4">
+              <div className="lg:hidden inline-flex h-12 w-12 rounded-[var(--radius-lg)] bg-gradient-to-br from-[var(--primary)] to-[var(--primary-gradient-to)] items-center justify-center mb-4">
                 <Home className="h-6 w-6 text-white" />
               </div>
               <h1 className="text-2xl font-bold text-[var(--foreground)]">Welcome back</h1>

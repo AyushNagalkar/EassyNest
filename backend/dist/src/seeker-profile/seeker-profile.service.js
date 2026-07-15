@@ -65,7 +65,7 @@ let SeekerProfileService = class SeekerProfileService {
         }
         return profile;
     }
-    async findById(id) {
+    async findById(id, userId) {
         const profile = await this.prisma.seekerProfile.findUnique({
             where: { id },
             include: {
@@ -84,7 +84,24 @@ let SeekerProfileService = class SeekerProfileService {
         if (!profile) {
             throw new common_1.NotFoundException('Seeker profile not found');
         }
-        return profile;
+        let compatibilityScore = null;
+        if (userId) {
+            const requester = await this.prisma.seekerProfile.findUnique({
+                where: { userId },
+                select: { id: true },
+            });
+            if (requester && requester.id !== id) {
+                const score = await this.prisma.compatibilityScore.findFirst({
+                    where: {
+                        seekerProfileId: requester.id,
+                        targetType: 'SEEKER_PROFILE',
+                        targetSeekerProfileId: id,
+                    },
+                });
+                compatibilityScore = score || null;
+            }
+        }
+        return { ...profile, compatibilityScore };
     }
     async update(userId, dto) {
         const profile = await this.prisma.seekerProfile.findUnique({
@@ -115,7 +132,7 @@ let SeekerProfileService = class SeekerProfileService {
         }
         return updated;
     }
-    async browse(query) {
+    async browse(query, userId) {
         const page = query.page || 1;
         const limit = query.limit || 20;
         const skip = (page - 1) * limit;
@@ -123,6 +140,9 @@ let SeekerProfileService = class SeekerProfileService {
             isPublic: true,
             type: { in: ['FLATMATE_SEEKER', 'BOTH'] },
         };
+        if (userId) {
+            where.userId = { not: userId };
+        }
         if (query.city) {
             where.preferredCity = { contains: query.city, mode: 'insensitive' };
         }
@@ -150,8 +170,36 @@ let SeekerProfileService = class SeekerProfileService {
             }),
             this.prisma.seekerProfile.count({ where }),
         ]);
+        let profilesWithScores = profiles.map((p) => ({ ...p, compatibilityScore: null }));
+        if (userId) {
+            const requester = await this.prisma.seekerProfile.findUnique({
+                where: { userId },
+                select: { id: true },
+            });
+            if (requester) {
+                const scores = await this.prisma.compatibilityScore.findMany({
+                    where: {
+                        seekerProfileId: requester.id,
+                        targetType: 'SEEKER_PROFILE',
+                        targetSeekerProfileId: { in: profiles.map((p) => p.id) },
+                    },
+                });
+                const scoreMap = new Map(scores.map((s) => [s.targetSeekerProfileId, s]));
+                profilesWithScores = profiles.map((p) => ({
+                    ...p,
+                    compatibilityScore: scoreMap.get(p.id) || null,
+                }));
+                if (query.sortBy === 'score') {
+                    profilesWithScores.sort((a, b) => {
+                        const scoreA = a.compatibilityScore?.score ?? -1;
+                        const scoreB = b.compatibilityScore?.score ?? -1;
+                        return scoreB - scoreA;
+                    });
+                }
+            }
+        }
         return {
-            data: profiles,
+            data: profilesWithScores,
             meta: {
                 total,
                 page,

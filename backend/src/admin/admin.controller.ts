@@ -119,6 +119,15 @@ export class AdminController {
     res.send(csv);
   }
 
+  @Delete('users/:id')
+  @ApiOperation({ summary: 'Permanently delete a user account' })
+  async deleteUser(
+    @Param('id') id: string,
+    @CurrentUser('id') adminId: string,
+  ) {
+    return this.adminService.deleteUser(id, adminId);
+  }
+
   @Get('export/listings')
   @ApiOperation({ summary: 'Export listings as CSV' })
   async exportListings(@Res() res: Response) {

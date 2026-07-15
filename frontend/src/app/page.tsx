@@ -89,7 +89,7 @@ export default function LandingPage() {
               className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[var(--foreground)] leading-[1.08]"
             >
               Find your perfect{' '}
-              <span className="gradient-text bg-gradient-to-r from-[var(--primary)] to-[#7C3AED] animate-gradient-text">
+              <span className="gradient-text bg-gradient-to-r from-[var(--primary)] to-[var(--primary-gradient-to)] animate-gradient-text">
                 room
               </span>{' '}
               or{' '}
@@ -330,7 +330,7 @@ export default function LandingPage() {
             {/* Brand */}
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <div className="h-7 w-7 rounded-[var(--radius-sm)] bg-gradient-to-br from-[var(--primary)] to-[#7C3AED] flex items-center justify-center">
+                <div className="h-7 w-7 rounded-[var(--radius-sm)] bg-gradient-to-br from-[var(--primary)] to-[var(--primary-gradient-to)] flex items-center justify-center">
                   <Building className="h-3.5 w-3.5 text-white" />
                 </div>
                 <span className="text-sm font-bold text-[var(--foreground)]">EassyNest</span>

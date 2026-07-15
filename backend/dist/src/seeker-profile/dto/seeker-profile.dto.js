@@ -273,6 +273,7 @@ class SeekerQueryDto {
     radiusKm;
     page;
     limit;
+    sortBy;
 }
 exports.SeekerQueryDto = SeekerQueryDto;
 __decorate([
@@ -345,4 +346,10 @@ __decorate([
     (0, class_validator_1.Max)(50),
     __metadata("design:type", Number)
 ], SeekerQueryDto.prototype, "limit", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ enum: ['recency', 'score'], default: 'recency' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], SeekerQueryDto.prototype, "sortBy", void 0);
 //# sourceMappingURL=seeker-profile.dto.js.map

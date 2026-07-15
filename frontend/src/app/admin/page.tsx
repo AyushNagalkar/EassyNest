@@ -81,6 +81,16 @@ export default function AdminDashboardPage() {
     }
   }
 
+  async function handleDeleteUser(userId: string) {
+    if (!confirm('Are you sure you want to permanently delete this user account? All associated data, listings, and messages will be permanently deleted.')) return;
+    try {
+      await api.delete(`/admin/users/${userId}`);
+      setUsersList((prev) => prev.filter((u) => u.id !== userId));
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete user');
+    }
+  }
+
   if (loading) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
@@ -225,14 +235,24 @@ export default function AdminDashboardPage() {
                         {new Date(u.createdAt).toLocaleDateString()}
                       </td>
                       <td className="p-4 text-right">
-                        <Button
-                          variant={isDeactivated ? 'secondary' : 'outline'}
-                          size="sm"
-                          onClick={() => handleToggleDeactivate(u.id, isDeactivated)}
-                          className={isDeactivated ? 'text-[var(--success)]' : 'text-[var(--destructive)] hover:bg-[var(--destructive-light)]'}
-                        >
-                          {isDeactivated ? 'Reactivate' : 'Deactivate'}
-                        </Button>
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant={isDeactivated ? 'secondary' : 'outline'}
+                            size="sm"
+                            onClick={() => handleToggleDeactivate(u.id, isDeactivated)}
+                            className={isDeactivated ? 'text-[var(--success)]' : 'text-[var(--destructive)] hover:bg-[var(--destructive-light)]'}
+                          >
+                            {isDeactivated ? 'Reactivate' : 'Deactivate'}
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteUser(u.id)}
+                            className="gap-1.5"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Delete
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );

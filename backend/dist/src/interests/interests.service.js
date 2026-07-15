@@ -107,7 +107,7 @@ let InterestsService = class InterestsService {
                 const scoreResult = await this.scoringService.scoreProperty(seekerProfile.id, dto.targetPropertyId);
                 const score = scoreResult.status === 'cached' ? scoreResult.score?.score : null;
                 if (score && score >= 80) {
-                    const emailPayload = this.emailService.interestReceivedEmail(targetName, fromUser.name, contextTitle, score);
+                    const emailPayload = this.emailService.interestReceivedEmail(targetName, fromUser.name, interest.targetProperty, score);
                     emailPayload.to = targetEmail;
                     await this.emailService.sendEmail(emailPayload);
                 }
@@ -182,7 +182,7 @@ let InterestsService = class InterestsService {
             data: { status: 'ACCEPTED', respondedAt: new Date() },
             include: {
                 fromUser: { select: { id: true, name: true, email: true } },
-                targetProperty: true,
+                targetProperty: { include: { owner: { select: { id: true, name: true } } } },
                 targetSeekerProfile: { include: { user: true } },
             },
         });
@@ -193,7 +193,7 @@ let InterestsService = class InterestsService {
             || `${updated.targetSeekerProfile?.user.name}'s profile`;
         await this.notificationsService.create(updated.fromUser.id, 'INTEREST_ACCEPTED', 'Interest Accepted! 🎉', `Your interest in ${contextTitle} was accepted. You can now chat!`, { interestId, chatEnabled: true });
         if (updated.targetProperty) {
-            const email = this.emailService.interestAcceptedEmail(updated.fromUser.name, updated.targetProperty.title, interestId);
+            const email = this.emailService.interestAcceptedEmail(updated.fromUser.name, updated.targetProperty, interestId);
             email.to = updated.fromUser.email;
             await this.emailService.sendEmail(email);
         }
@@ -214,7 +214,7 @@ let InterestsService = class InterestsService {
             || `${updated.targetSeekerProfile?.user.name}'s profile`;
         await this.notificationsService.create(updated.fromUser.id, 'INTEREST_DECLINED', 'Interest Update', `Your interest in ${contextTitle} was declined.`, { interestId });
         if (updated.targetProperty) {
-            const email = this.emailService.interestDeclinedEmail(updated.fromUser.name, updated.targetProperty.title);
+            const email = this.emailService.interestDeclinedEmail(updated.fromUser.name, updated.targetProperty);
             email.to = updated.fromUser.email;
             await this.emailService.sendEmail(email);
         }

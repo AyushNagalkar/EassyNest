@@ -169,5 +169,8 @@ export declare class AdminController {
         reviewedAt: Date | null;
     }>;
     exportUsers(res: Response): Promise<void>;
+    deleteUser(id: string, adminId: string): Promise<{
+        message: string;
+    }>;
     exportListings(res: Response): Promise<void>;
 }

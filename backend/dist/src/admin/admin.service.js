@@ -251,6 +251,132 @@ let AdminService = class AdminService {
             .join('\n');
         return header + rows;
     }
+    async deleteUser(userId, adminId) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user)
+            throw new common_1.NotFoundException('User not found');
+        await this.prisma.$transaction(async (tx) => {
+            await tx.review.deleteMany({
+                where: { OR: [{ authorId: userId }, { targetId: userId }] },
+            });
+            await tx.flag.deleteMany({
+                where: { creatorId: userId },
+            });
+            await tx.favorite.deleteMany({
+                where: { userId },
+            });
+            await tx.notification.deleteMany({
+                where: { userId },
+            });
+            await tx.savedSearch.deleteMany({
+                where: { userId },
+            });
+            const seekerProfile = await tx.seekerProfile.findUnique({
+                where: { userId },
+            });
+            if (seekerProfile) {
+                await tx.compatibilityScore.deleteMany({
+                    where: {
+                        OR: [
+                            { seekerProfileId: seekerProfile.id },
+                            { targetSeekerProfileId: seekerProfile.id },
+                        ],
+                    },
+                });
+                const targetInterests = await tx.interest.findMany({
+                    where: { targetType: 'SEEKER_PROFILE', targetSeekerProfileId: seekerProfile.id },
+                    select: { id: true },
+                });
+                const targetInterestIds = targetInterests.map((i) => i.id);
+                if (targetInterestIds.length > 0) {
+                    await tx.message.deleteMany({
+                        where: { chatRoom: { interestId: { in: targetInterestIds } } },
+                    });
+                    await tx.chatRoom.deleteMany({
+                        where: { interestId: { in: targetInterestIds } },
+                    });
+                    await tx.interest.deleteMany({
+                        where: { id: { in: targetInterestIds } },
+                    });
+                }
+                await tx.seekerProfile.delete({
+                    where: { id: seekerProfile.id },
+                });
+            }
+            const properties = await tx.property.findMany({
+                where: { ownerId: userId },
+                select: { id: true },
+            });
+            const propertyIds = properties.map((p) => p.id);
+            if (propertyIds.length > 0) {
+                await tx.propertyPhoto.deleteMany({
+                    where: { propertyId: { in: propertyIds } },
+                });
+                await tx.compatibilityScore.deleteMany({
+                    where: { targetType: 'PROPERTY', targetPropertyId: { in: propertyIds } },
+                });
+                await tx.propertyView.deleteMany({
+                    where: { propertyId: { in: propertyIds } },
+                });
+                await tx.favorite.deleteMany({
+                    where: { propertyId: { in: propertyIds } },
+                });
+                await tx.flag.deleteMany({
+                    where: { propertyId: { in: propertyIds } },
+                });
+                const propertyInterests = await tx.interest.findMany({
+                    where: { targetType: 'PROPERTY', targetPropertyId: { in: propertyIds } },
+                    select: { id: true },
+                });
+                const propInterestIds = propertyInterests.map((i) => i.id);
+                if (propInterestIds.length > 0) {
+                    await tx.message.deleteMany({
+                        where: { chatRoom: { interestId: { in: propInterestIds } } },
+                    });
+                    await tx.chatRoom.deleteMany({
+                        where: { interestId: { in: propInterestIds } },
+                    });
+                    await tx.interest.deleteMany({
+                        where: { id: { in: propInterestIds } },
+                    });
+                }
+                await tx.property.deleteMany({
+                    where: { id: { in: propertyIds } },
+                });
+            }
+            const sentInterests = await tx.interest.findMany({
+                where: { fromUserId: userId },
+                select: { id: true },
+            });
+            const sentInterestIds = sentInterests.map((i) => i.id);
+            if (sentInterestIds.length > 0) {
+                await tx.message.deleteMany({
+                    where: { chatRoom: { interestId: { in: sentInterestIds } } },
+                });
+                await tx.chatRoom.deleteMany({
+                    where: { interestId: { in: sentInterestIds } },
+                });
+                await tx.interest.deleteMany({
+                    where: { id: { in: sentInterestIds } },
+                });
+            }
+            await tx.message.deleteMany({
+                where: { senderId: userId },
+            });
+            await tx.user.delete({
+                where: { id: userId },
+            });
+        });
+        await this.prisma.adminActivityLog.create({
+            data: {
+                actorId: adminId,
+                action: 'DELETE_USER',
+                targetType: 'USER',
+                targetId: userId,
+            },
+        });
+        return { message: 'User and all associated data permanently deleted' };
+    }
 };
 exports.AdminService = AdminService;
 exports.AdminService = AdminService = __decorate([

@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { MapPin, Calendar, Wallet, ArrowLeft, Send, Heart, Briefcase, Home, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { CompatibilityBadge } from '@/components/ui/compatibility-badge';
 
 export default function FlatmateDetailPage() {
   const { id } = useParams();
@@ -22,10 +23,49 @@ export default function FlatmateDetailPage() {
   const [loading, setLoading] = useState(true);
   const [interestLoading, setInterestLoading] = useState(false);
   const [interestSent, setInterestSent] = useState(false);
+  const [compatibilityScore, setCompatibilityScore] = useState<any>(null);
+  const [scoreLoading, setScoreLoading] = useState(false);
 
   useEffect(() => {
-    api.get(`/seekers/${id}`).then(setSeeker).catch(console.error).finally(() => setLoading(false));
+    setLoading(true);
+    api.get(`/seekers/${id}`)
+      .then((data) => {
+        setSeeker(data);
+        if (data.compatibilityScore) {
+          setCompatibilityScore(data.compatibilityScore);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (seeker && user?.role === 'TENANT' && user.id !== seeker.userId && !compatibilityScore) {
+      setScoreLoading(true);
+      api.post(`/scores/seeker/${seeker.id}`)
+        .then((res) => {
+          if (res.status === 'cached') {
+            setCompatibilityScore(res.score);
+            setScoreLoading(false);
+          } else if (res.status === 'queued') {
+            const interval = setInterval(() => {
+              api.get(`/seekers/${id}`).then((updated) => {
+                if (updated.compatibilityScore) {
+                  setCompatibilityScore(updated.compatibilityScore);
+                  setScoreLoading(false);
+                  clearInterval(interval);
+                }
+              });
+            }, 3000);
+            return () => clearInterval(interval);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to trigger flatmate scoring:', err);
+          setScoreLoading(false);
+        });
+    }
+  }, [id, user, seeker, compatibilityScore]);
 
   async function handleExpressInterest() {
     setInterestLoading(true);
@@ -86,7 +126,16 @@ export default function FlatmateDetailPage() {
                   <Avatar src={seeker.user?.avatarUrl} name={seeker.user?.name || 'User'} size="xl" />
                 </div>
                 <div className="flex-1 pb-1">
-                  <h1 className="text-2xl font-bold text-[var(--foreground)]">{seeker.user?.name}</h1>
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-2xl font-bold text-[var(--foreground)]">{seeker.user?.name}</h1>
+                    {scoreLoading ? (
+                      <span className="h-5 w-5 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
+                    ) : (
+                      compatibilityScore && (
+                        <CompatibilityBadge score={compatibilityScore.score} explanation={compatibilityScore.explanation} size="sm" />
+                      )
+                    )}
+                  </div>
                   <p className="text-[var(--foreground-secondary)] flex items-center gap-1.5 mt-0.5">
                     <MapPin className="h-4 w-4 text-[var(--foreground-muted)]" /> {seeker.preferredCity}
                   </p>

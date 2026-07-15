@@ -12,8 +12,8 @@ export declare class EmailService {
     private from;
     constructor(configService: ConfigService);
     sendEmail(payload: EmailPayload): Promise<void>;
-    interestReceivedEmail(ownerName: string, tenantName: string, propertyTitle: string, score: number): EmailPayload;
-    interestAcceptedEmail(tenantName: string, propertyTitle: string, interestId: string): EmailPayload;
-    interestDeclinedEmail(tenantName: string, propertyTitle: string): EmailPayload;
+    interestReceivedEmail(ownerName: string, tenantName: string, property: any, score: number): EmailPayload;
+    interestAcceptedEmail(tenantName: string, property: any, interestId: string): EmailPayload;
+    interestDeclinedEmail(tenantName: string, property: any): EmailPayload;
     newMatchAlertEmail(userName: string, searchName: string, matchCount: number): EmailPayload;
 }

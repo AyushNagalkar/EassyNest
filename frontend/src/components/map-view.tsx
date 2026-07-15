@@ -8,6 +8,7 @@ interface MapViewProps {
   center?: [number, number];
   zoom?: number;
   onMarkerClick?: (id: string) => void;
+  onMapClick?: (lat: number, lng: number) => void;
   className?: string;
 }
 
@@ -16,7 +17,31 @@ const TILES_LIGHT = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{
 const TILES_DARK = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
 const ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>';
 
-export function MapView({ markers = [], center = [12.9716, 77.5946], zoom = 12, onMarkerClick, className }: MapViewProps) {
+function ChangeView({ center, useMap }: { center: [number, number]; useMap: any }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, map.getZoom());
+  }, [center, map]);
+  return null;
+}
+
+function MapEvents({ onClick, useMapEvents }: { onClick: (lat: number, lng: number) => void; useMapEvents: any }) {
+  useMapEvents({
+    click(e: any) {
+      onClick(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
+
+export function MapView({
+  markers = [],
+  center = [12.9716, 77.5946],
+  zoom = 12,
+  onMarkerClick,
+  onMapClick,
+  className,
+}: MapViewProps) {
   const { resolvedTheme } = useTheme();
   const [MapComponents, setMapComponents] = useState<any>(null);
 
@@ -33,7 +58,7 @@ export function MapView({ markers = [], center = [12.9716, 77.5946], zoom = 12, 
     );
   }
 
-  const { MapContainer, TileLayer, Marker, Popup } = MapComponents;
+  const { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } = MapComponents;
   const tileUrl = resolvedTheme === 'dark' ? TILES_DARK : TILES_LIGHT;
 
   return (
@@ -44,6 +69,8 @@ export function MapView({ markers = [], center = [12.9716, 77.5946], zoom = 12, 
       scrollWheelZoom={true}
     >
       <TileLayer url={tileUrl} attribution={ATTR} />
+      <ChangeView center={center} useMap={useMap} />
+      {onMapClick && <MapEvents onClick={onMapClick} useMapEvents={useMapEvents} />}
       {markers.map((m) => (
         <Marker
           key={m.id}

@@ -1,3 +1,4 @@
+import type { Request } from 'express';
 import { SeekerProfileService } from './seeker-profile.service.js';
 import { CreateSeekerProfileDto, UpdateSeekerProfileDto, SeekerQueryDto } from './dto/seeker-profile.dto.js';
 export declare class SeekerProfileController {
@@ -92,15 +93,15 @@ export declare class SeekerProfileController {
         age: number | null;
         userId: string;
     }>;
-    browse(query: SeekerQueryDto): Promise<{
-        data: ({
+    browse(query: SeekerQueryDto, req: Request): Promise<{
+        data: {
+            compatibilityScore: any;
             user: {
                 id: string;
                 name: string;
                 avatarUrl: string | null;
                 emailVerified: boolean;
             };
-        } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
@@ -122,7 +123,7 @@ export declare class SeekerProfileController {
             occupation: string | null;
             age: number | null;
             userId: string;
-        })[];
+        }[];
         meta: {
             total: number;
             page: number;
@@ -130,7 +131,8 @@ export declare class SeekerProfileController {
             totalPages: number;
         };
     }>;
-    findOne(id: string): Promise<{
+    findOne(id: string, req: Request): Promise<{
+        compatibilityScore: any;
         user: {
             id: string;
             name: string;
@@ -141,7 +143,6 @@ export declare class SeekerProfileController {
                 reviewsReceived: number;
             };
         };
-    } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;

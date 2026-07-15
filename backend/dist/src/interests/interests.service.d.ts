@@ -242,7 +242,12 @@ export declare class InterestsService {
         fromUserId: string;
     })[]>;
     accept(interestId: string, userId: string): Promise<{
-        targetProperty: {
+        targetProperty: ({
+            owner: {
+                id: string;
+                name: string;
+            };
+        } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
@@ -265,7 +270,7 @@ export declare class InterestsService {
             viewCount: number;
             interestCount: number;
             ownerId: string;
-        } | null;
+        }) | null;
         targetSeekerProfile: ({
             user: {
                 id: string;

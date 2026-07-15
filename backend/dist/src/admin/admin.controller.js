@@ -59,6 +59,9 @@ let AdminController = class AdminController {
         res.setHeader('Content-Disposition', 'attachment; filename=users.csv');
         res.send(csv);
     }
+    async deleteUser(id, adminId) {
+        return this.adminService.deleteUser(id, adminId);
+    }
     async exportListings(res) {
         const csv = await this.adminService.exportListingsCsv();
         res.setHeader('Content-Type', 'text/csv');
@@ -160,6 +163,15 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AdminController.prototype, "exportUsers", null);
+__decorate([
+    (0, common_1.Delete)('users/:id'),
+    (0, swagger_1.ApiOperation)({ summary: 'Permanently delete a user account' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_user_decorator_js_1.CurrentUser)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "deleteUser", null);
 __decorate([
     (0, common_1.Get)('export/listings'),
     (0, swagger_1.ApiOperation)({ summary: 'Export listings as CSV' }),

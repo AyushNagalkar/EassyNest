@@ -117,61 +117,185 @@ let EmailService = EmailService_1 = class EmailService {
         }
         this.logger.log(`[DEV MODE] Email body:\n${payload.html}`);
     }
-    interestReceivedEmail(ownerName, tenantName, propertyTitle, score) {
+    interestReceivedEmail(ownerName, tenantName, property, score) {
+        const formattedRent = property.rent ? `₹${property.rent.toLocaleString('en-IN')}` : 'N/A';
+        const formattedDeposit = property.deposit ? `₹${property.deposit.toLocaleString('en-IN')}` : 'N/A';
         return {
             to: '',
-            subject: `New interest in "${propertyTitle}" — ${score}% match!`,
+            subject: `🔥 New Tenant Interest in "${property.title}" — ${score}% Match!`,
             html: `
-        <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-          <h2 style="color: #4F46E5;">New Interest Received! 🎉</h2>
-          <p>Hi ${ownerName},</p>
-          <p><strong>${tenantName}</strong> has expressed interest in your listing <strong>"${propertyTitle}"</strong>.</p>
-          <div style="background: ${score >= 80 ? '#DCFCE7' : score >= 50 ? '#FEF3C7' : '#F3F4F6'}; 
-                      border-radius: 12px; padding: 16px; text-align: center; margin: 16px 0;">
-            <p style="font-size: 14px; color: #6B7280; margin: 0;">Compatibility Score</p>
-            <p style="font-size: 36px; font-weight: 700; color: ${score >= 80 ? '#16A34A' : score >= 50 ? '#D97706' : '#64748B'}; margin: 4px 0;">${score}%</p>
+        <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background-color: #F9FAFB; padding: 32px 16px; color: #1F2937;">
+          <div style="max-width: 580px; margin: 0 auto; background: #FFFFFF; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);">
+            <!-- Gradient Header -->
+            <div style="background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%); padding: 32px 24px; text-align: center;">
+              <h1 style="color: #FFFFFF; margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">New Tenant Interest! 🎉</h1>
+              <p style="color: #E0E7FF; margin: 8px 0 0 0; font-size: 15px;">A highly compatible tenant is eager to connect.</p>
+            </div>
+            
+            <div style="padding: 32px 24px;">
+              <p style="font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">Hi <strong>${ownerName}</strong>,</p>
+              <p style="font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+                Great news! <strong>${tenantName}</strong> has expressed interest in renting your property, and they look like an exceptional fit.
+              </p>
+              
+              <!-- Compatibility Badge -->
+              <div style="background: ${score >= 80 ? '#ECFDF5' : '#FFFBEB'}; border: 1px solid ${score >= 80 ? '#A7F3D0' : '#FDE68A'}; border-radius: 16px; padding: 20px; text-align: center; margin: 0 0 28px 0;">
+                <p style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: ${score >= 80 ? '#065F46' : '#92400E'}; margin: 0 0 6px 0;">AI Match Score</p>
+                <div style="font-size: 42px; font-weight: 800; color: ${score >= 80 ? '#059669' : '#D97706'};">${score}%</div>
+                <p style="font-size: 14px; color: #4B5563; margin: 8px 0 0 0; font-style: italic;">
+                  Based on shared preferences, sleep schedules, smoker/pet rules, and lifestyle match.
+                </p>
+              </div>
+
+              <!-- Property Summary Card -->
+              <div style="border: 1px solid #E5E7EB; border-radius: 16px; padding: 20px; background-color: #F9FAFB; margin: 0 0 28px 0;">
+                <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #111827; font-weight: 700;">Property Details</h3>
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                  <tr>
+                    <td style="padding: 6px 0; color: #6B7280; width: 110px;"><strong>Title:</strong></td>
+                    <td style="padding: 6px 0; color: #111827;">${property.title}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #6B7280;"><strong>Rent:</strong></td>
+                    <td style="padding: 6px 0; color: #4F46E5; font-weight: 700;">${formattedRent} / month</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #6B7280;"><strong>Deposit:</strong></td>
+                    <td style="padding: 6px 0; color: #111827;">${formattedDeposit}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #6B7280;"><strong>Room Type:</strong></td>
+                    <td style="padding: 6px 0; color: #111827; text-transform: capitalize;">${property.roomType?.replace('_', ' ')}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #6B7280;"><strong>Furnishing:</strong></td>
+                    <td style="padding: 6px 0; color: #111827; text-transform: capitalize;">${property.furnishing?.replace('_', ' ')}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #6B7280;"><strong>Location:</strong></td>
+                    <td style="padding: 6px 0; color: #111827;">${property.address}, ${property.city}</td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Button CTA -->
+              <div style="text-align: center; margin: 32px 0 12px 0;">
+                <a href="${process.env.FRONTEND_URL || 'https://eassy-nest.vercel.app'}/interests" 
+                   style="display: inline-block; background: #4F46E5; color: #FFFFFF; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 15px; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);">
+                  View Interest Profile
+                </a>
+              </div>
+            </div>
+            
+            <!-- Footer -->
+            <div style="background-color: #F3F4F6; padding: 20px; text-align: center; font-size: 12px; color: #9CA3AF; border-top: 1px solid #E5E7EB;">
+              &copy; 2026 EassyNest. Helping you find the perfect nest.
+            </div>
           </div>
-          <p>Log in to review the interest and respond.</p>
-          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/interests" 
-             style="display: inline-block; background: #4F46E5; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-            View Interest
-          </a>
         </div>
       `,
         };
     }
-    interestAcceptedEmail(tenantName, propertyTitle, interestId) {
+    interestAcceptedEmail(tenantName, property, interestId) {
+        const ownerName = property.owner?.name || 'The Owner';
+        const formattedRent = property.rent ? `₹${property.rent.toLocaleString('en-IN')}` : 'N/A';
         return {
             to: '',
-            subject: `Your interest in "${propertyTitle}" was accepted! 🎉`,
+            subject: `🎉 Hurray! Your Interest in "${property.title}" was ACCEPTED!`,
             html: `
-        <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-          <h2 style="color: #16A34A;">Interest Accepted! ✅</h2>
-          <p>Hi ${tenantName},</p>
-          <p>Great news! Your interest in <strong>"${propertyTitle}"</strong> has been accepted.</p>
-          <p>You can now chat directly with the property owner.</p>
-          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/chat/${interestId}" 
-             style="display: inline-block; background: #4F46E5; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-            Start Chatting
-          </a>
+        <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background-color: #F9FAFB; padding: 32px 16px; color: #1F2937;">
+          <div style="max-width: 580px; margin: 0 auto; background: #FFFFFF; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);">
+            <!-- Gradient Header (Success Green) -->
+            <div style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); padding: 32px 24px; text-align: center;">
+              <h1 style="color: #FFFFFF; margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">Congratulations! 🏠</h1>
+              <p style="color: #D1FAE5; margin: 8px 0 0 0; font-size: 15px;">Your application has been approved by the owner.</p>
+            </div>
+            
+            <div style="padding: 32px 24px;">
+              <p style="font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">Hi <strong>${tenantName}</strong>,</p>
+              <p style="font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+                Fantastic news! <strong>${ownerName}</strong> has accepted your interest expression in their listing <strong>"${property.title}"</strong>.
+              </p>
+
+              <!-- Property Summary Card -->
+              <div style="border: 1px solid #E5E7EB; border-radius: 16px; padding: 20px; background-color: #F9FAFB; margin: 0 0 28px 0;">
+                <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #111827; font-weight: 700;">Property & Owner Summary</h3>
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                  <tr>
+                    <td style="padding: 6px 0; color: #6B7280; width: 110px;"><strong>Owner Name:</strong></td>
+                    <td style="padding: 6px 0; color: #111827; font-weight: 600;">${ownerName}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #6B7280;"><strong>Rent:</strong></td>
+                    <td style="padding: 6px 0; color: #059669; font-weight: 700;">${formattedRent} / month</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #6B7280;"><strong>Room Type:</strong></td>
+                    <td style="padding: 6px 0; color: #111827; text-transform: capitalize;">${property.roomType?.replace('_', ' ')}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #6B7280;"><strong>Location:</strong></td>
+                    <td style="padding: 6px 0; color: #111827;">${property.address}, ${property.city}</td>
+                  </tr>
+                </table>
+              </div>
+
+              <p style="font-size: 15px; line-height: 1.6; margin: 0 0 24px 0; text-align: center; color: #4B5563;">
+                You can now connect directly via chat to discuss moving dates, guidelines, or agreements!
+              </p>
+
+              <!-- Button CTA -->
+              <div style="text-align: center; margin: 32px 0 12px 0;">
+                <a href="${process.env.FRONTEND_URL || 'https://eassy-nest.vercel.app'}/chat/${interestId}" 
+                   style="display: inline-block; background: #10B981; color: #FFFFFF; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 15px; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);">
+                  Start Chatting Now
+                </a>
+              </div>
+            </div>
+            
+            <!-- Footer -->
+            <div style="background-color: #F3F4F6; padding: 20px; text-align: center; font-size: 12px; color: #9CA3AF; border-top: 1px solid #E5E7EB;">
+              &copy; 2026 EassyNest. Helping you find the perfect nest.
+            </div>
+          </div>
         </div>
       `,
         };
     }
-    interestDeclinedEmail(tenantName, propertyTitle) {
+    interestDeclinedEmail(tenantName, property) {
         return {
             to: '',
-            subject: `Update on your interest in "${propertyTitle}"`,
+            subject: `Update on your interest in "${property.title}"`,
             html: `
-        <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-          <h2 style="color: #64748B;">Interest Update</h2>
-          <p>Hi ${tenantName},</p>
-          <p>Unfortunately, your interest in <strong>"${propertyTitle}"</strong> was not accepted at this time.</p>
-          <p>Don't worry — there are plenty of other great listings to explore!</p>
-          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/properties" 
-             style="display: inline-block; background: #4F46E5; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
-            Browse Properties
-          </a>
+        <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background-color: #F9FAFB; padding: 32px 16px; color: #1F2937;">
+          <div style="max-width: 580px; margin: 0 auto; background: #FFFFFF; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);">
+            <div style="background: #64748B; padding: 28px 24px; text-align: center;">
+              <h1 style="color: #FFFFFF; margin: 0; font-size: 24px; font-weight: 700;">Nest Search Update</h1>
+            </div>
+            
+            <div style="padding: 32px 24px;">
+              <p style="font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">Hi <strong>${tenantName}</strong>,</p>
+              <p style="font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+                Thank you for applying to <strong>"${property.title}"</strong>. Unfortunately, the owner has declined your interest expression at this time.
+              </p>
+              <p style="font-size: 15px; line-height: 1.6; color: #4B5563; margin: 0 0 28px 0;">
+                Please don't be discouraged! There are hundreds of other incredible listings matching your preferences on EassyNest.
+              </p>
+
+              <!-- Button CTA -->
+              <div style="text-align: center; margin: 32px 0 12px 0;">
+                <a href="${process.env.FRONTEND_URL || 'https://eassy-nest.vercel.app'}/properties" 
+                   style="display: inline-block; background: #4F46E5; color: #FFFFFF; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 15px;">
+                  Explore More Properties
+                </a>
+              </div>
+            </div>
+            
+            <!-- Footer -->
+            <div style="background-color: #F3F4F6; padding: 20px; text-align: center; font-size: 12px; color: #9CA3AF; border-top: 1px solid #E5E7EB;">
+              &copy; 2026 EassyNest. Helping you find the perfect nest.
+            </div>
+          </div>
         </div>
       `,
         };
