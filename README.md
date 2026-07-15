@@ -12,8 +12,9 @@
 
 </p>
 
+##  Quick Links
 
-# EassyNest — Rent & Flatmate Finder
+-  **Live Demo:** https://eassy-nest.vercel.app/ 
 
 EassyNest is a modern, AI-powered property listing and flatmate discovery platform designed to solve the age-old problem of roommate matching. Rather than focusing solely on listing characteristics, EassyNest emphasizes lifestyle, location, and budget alignment to ensure seamless co-living.
 
