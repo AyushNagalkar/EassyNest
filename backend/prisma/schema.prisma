@@ -1,0 +1,378 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------- ENUMS ----------
+
+enum Role {
+  TENANT
+  OWNER
+  ADMIN
+}
+
+enum RoomType {
+  SINGLE_ROOM
+  SHARED_ROOM
+  ONE_BHK
+  TWO_BHK
+  STUDIO
+  PG
+}
+
+enum FurnishingStatus {
+  FURNISHED
+  SEMI_FURNISHED
+  UNFURNISHED
+}
+
+enum ListingStatus {
+  ACTIVE
+  FILLED
+  INACTIVE
+}
+
+// A tenant profile can be looking for a room to rent, a flatmate to share
+// with, or both. This is what makes the site do property search AND
+// flatmate search off the same profile.
+enum SeekerType {
+  ROOM_SEEKER
+  FLATMATE_SEEKER
+  BOTH
+}
+
+enum TargetType {
+  PROPERTY
+  SEEKER_PROFILE
+}
+
+enum InterestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum ScoreSource {
+  LLM
+  RULE_BASED
+}
+
+enum NotificationType {
+  INTEREST_RECEIVED
+  INTEREST_ACCEPTED
+  INTEREST_DECLINED
+  HIGH_MATCH
+  NEW_MESSAGE
+  NEW_LISTING_MATCH
+  REVIEW_RECEIVED
+  SYSTEM
+}
+
+enum GenderPreference {
+  MALE_ONLY
+  FEMALE_ONLY
+  ANY
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  SYSTEM
+}
+
+enum FlagReason {
+  SPAM
+  INAPPROPRIATE
+  SCAM
+  OTHER
+}
+
+enum FlagStatus {
+  PENDING
+  REVIEWED
+  ACTIONED
+  DISMISSED
+}
+
+// ---------- CORE ----------
+
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  passwordHash     String
+  name             String
+  phone            String?
+  avatarUrl        String?
+  role             Role
+  isActive         Boolean   @default(true)
+  emailVerified    Boolean   @default(false)
+  emailVerifyToken String?
+  phoneVerified    Boolean   @default(false)
+  lastSeenAt       DateTime?
+  notificationPrefs Json?    // { interestEmail: true, chatEmail: false, matchEmail: true }
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  properties      Property[]
+  seekerProfile   SeekerProfile?
+  sentInterests   Interest[]       @relation("InterestFrom")
+  messages        Message[]
+  notifications   Notification[]
+  favorites       Favorite[]
+  reviewsGiven    Review[]         @relation("ReviewAuthor")
+  reviewsReceived Review[]         @relation("ReviewTarget")
+  savedSearches   SavedSearch[]
+  flags           Flag[]           @relation("FlagCreator")
+
+  @@index([role])
+}
+
+// Owner-posted rental property.
+model Property {
+  id               String            @id @default(cuid())
+  ownerId          String
+  owner            User              @relation(fields: [ownerId], references: [id])
+  title            String
+  description      String
+  city             String
+  address          String
+  lat              Float
+  lng              Float
+  rent             Int
+  availableFrom    DateTime
+  roomType         RoomType
+  furnishing       FurnishingStatus
+  amenities        String[]          @default([])
+  rules            String[]          @default([])
+  petFriendly      Boolean           @default(false)
+  genderPreference GenderPreference  @default(ANY)
+  leaseLengthMonths Int?
+  status           ListingStatus     @default(ACTIVE)
+  viewCount        Int               @default(0)
+  interestCount    Int               @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  photos    PropertyPhoto[]
+  scores    CompatibilityScore[] @relation("ScoreOnProperty")
+  interests Interest[]           @relation("InterestOnProperty")
+  favorites Favorite[]
+  flags     Flag[]
+  views     PropertyView[]
+
+  @@index([city, status])
+  @@index([rent])
+}
+
+model PropertyPhoto {
+  id         String   @id @default(cuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  url        String
+  order      Int      @default(0)
+}
+
+// A tenant's "looking for" profile — powers both room search and
+// flatmate search depending on `type`.
+model SeekerProfile {
+  id               String           @id @default(cuid())
+  userId           String           @unique
+  user             User             @relation(fields: [userId], references: [id])
+  type             SeekerType
+  preferredCity    String
+  preferredLat     Float?
+  preferredLng     Float?
+  budgetMin        Int
+  budgetMax        Int
+  moveInDate       DateTime
+  bio              String?
+  isPublic         Boolean          @default(true) // visible to others as a flatmate post
+  // Lifestyle fields for richer compatibility scoring
+  sleepSchedule    String?          // "early_bird" | "night_owl" | "flexible"
+  cleanliness      String?          // "very_clean" | "moderate" | "relaxed"
+  smoking          String?          // "smoker" | "non_smoker" | "outdoors_only"
+  pets             String?          // "has_pets" | "no_pets" | "pet_friendly"
+  workFromHome     Boolean?
+  genderPreference GenderPreference @default(ANY)
+  occupation       String?
+  age              Int?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  scoresAsOwner  CompatibilityScore[] @relation("ScoreOwner")
+  scoresAsTarget CompatibilityScore[] @relation("ScoreOnSeeker")
+  interestsIn    Interest[]           @relation("InterestOnSeeker")
+
+  @@index([preferredCity, type])
+}
+
+// One row per (seeker, target) pair. Computed once, reused — never
+// recomputed on every page load, per spec.
+model CompatibilityScore {
+  id                     String         @id @default(cuid())
+  seekerProfileId        String
+  seekerProfile          SeekerProfile  @relation("ScoreOwner", fields: [seekerProfileId], references: [id])
+  targetType             TargetType
+  targetPropertyId       String?
+  targetProperty         Property?      @relation("ScoreOnProperty", fields: [targetPropertyId], references: [id])
+  targetSeekerProfileId  String?
+  targetSeekerProfile    SeekerProfile? @relation("ScoreOnSeeker", fields: [targetSeekerProfileId], references: [id])
+  score                  Int
+  explanation            String
+  source                 ScoreSource
+  computedAt             DateTime       @default(now())
+
+  @@unique([seekerProfileId, targetType, targetPropertyId, targetSeekerProfileId])
+  @@index([score])
+}
+
+// Interest can point at a Property (room seeker -> owner) or at another
+// SeekerProfile (flatmate seeker -> flatmate seeker).
+model Interest {
+  id                     String         @id @default(cuid())
+  fromUserId             String
+  fromUser               User           @relation("InterestFrom", fields: [fromUserId], references: [id])
+  targetType             TargetType
+  targetPropertyId       String?
+  targetProperty         Property?      @relation("InterestOnProperty", fields: [targetPropertyId], references: [id])
+  targetSeekerProfileId  String?
+  targetSeekerProfile    SeekerProfile? @relation("InterestOnSeeker", fields: [targetSeekerProfileId], references: [id])
+  status                 InterestStatus @default(PENDING)
+  createdAt              DateTime       @default(now())
+  respondedAt            DateTime?
+
+  chatRoom ChatRoom?
+
+  @@index([status])
+}
+
+model ChatRoom {
+  id         String   @id @default(cuid())
+  interestId String   @unique
+  interest   Interest @relation(fields: [interestId], references: [id])
+  createdAt  DateTime @default(now())
+
+  messages Message[]
+}
+
+model Message {
+  id         String      @id @default(cuid())
+  chatRoomId String
+  chatRoom   ChatRoom    @relation(fields: [chatRoomId], references: [id])
+  senderId   String
+  sender     User        @relation(fields: [senderId], references: [id])
+  content    String
+  type       MessageType @default(TEXT)
+  imageUrl   String?
+  readAt     DateTime?
+  createdAt  DateTime    @default(now())
+
+  @@index([chatRoomId, createdAt])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  type      NotificationType
+  title     String
+  body      String
+  read      Boolean          @default(false)
+  meta      Json?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, read])
+}
+
+// Not in the original deliverable list but expected on any listing site.
+model Favorite {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, propertyId])
+}
+
+model AdminActivityLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  targetType String?
+  targetId   String?
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// ---------- NEW MODELS (Extensions) ----------
+
+// Review/rating between matched users after a tenancy
+model Review {
+  id         String   @id @default(cuid())
+  authorId   String
+  author     User     @relation("ReviewAuthor", fields: [authorId], references: [id])
+  targetId   String
+  target     User     @relation("ReviewTarget", fields: [targetId], references: [id])
+  interestId String
+  rating     Int      // 1-5
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  @@unique([authorId, interestId])
+  @@index([targetId])
+}
+
+// Saved searches with alert-on-new-match
+model SavedSearch {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  name        String
+  filters     Json      // { city, minRent, maxRent, roomType[], amenities[], ... }
+  alertsOn    Boolean   @default(true)
+  lastAlertAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+// Content moderation flags
+model Flag {
+  id          String     @id @default(cuid())
+  creatorId   String
+  creator     User       @relation("FlagCreator", fields: [creatorId], references: [id])
+  targetType  String     // "PROPERTY" | "MESSAGE" | "USER"
+  targetId    String
+  propertyId  String?
+  property    Property?  @relation(fields: [propertyId], references: [id])
+  reason      FlagReason
+  details     String?
+  status      FlagStatus @default(PENDING)
+  reviewedAt  DateTime?
+  createdAt   DateTime   @default(now())
+
+  @@index([status])
+  @@index([targetType, targetId])
+}
+
+// Property view tracking for owner analytics
+model PropertyView {
+  id         String   @id @default(cuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+  viewerIp   String?
+  viewerId   String?
+  createdAt  DateTime @default(now())
+
+  @@index([propertyId, createdAt])
+}

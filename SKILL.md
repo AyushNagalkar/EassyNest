@@ -1,0 +1,3 @@
+prisma-gotchas.md — "Prisma 6 pinned, not 7. Supabase transaction pooler (6543) for DATABASE_URL, session pooler (5432) for DIRECT_URL — direct host is IPv6-only and hangs on Windows."
+llm-scoring-contract.md — the exact prompt + JSON contract + fallback formula from docs/LLM-PROMPTS.md, so if the agent extends scoring later (lifestyle fields etc.) it edits the contract in one place consistently instead of drifting.
+design-tokens.md — copy of your DESIGN-SYSTEM.md color/spacing tokens, so every new component the agent writes across a long session pulls the same values instead of improvising Tailwind classes per file.
