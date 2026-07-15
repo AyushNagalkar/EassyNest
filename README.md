@@ -76,23 +76,106 @@ graph TD
 
 ---
 
-## 📊 Database Model & Schema Overview
+## 📊 Database Model & Entity Relationship Diagram (ERD)
 
-EassyNest structures data models to support polymorphic targeting. Scores and Interest records link to either a `Property` or another `SeekerProfile` depending on context.
+### Entity Relationship Diagram
+```mermaid
+erDiagram
+    User ||--o{ Property : "owns (OWNER)"
+    User ||--o| SeekerProfile : "has (TENANT)"
+    User ||--o{ Interest : "sends"
+    User ||--o{ Message : "sends"
+    User ||--o{ Notification : "receives"
+    User ||--o{ Favorite : "saves"
 
+    Property ||--o{ PropertyPhoto : "has"
+    Property ||--o{ CompatibilityScore : "scored against"
+    Property ||--o{ Interest : "receives"
+    Property ||--o{ Favorite : "saved as"
+
+    SeekerProfile ||--o{ CompatibilityScore : "owns scores / is scored"
+    SeekerProfile ||--o{ Interest : "receives (flatmate match)"
+
+    Interest ||--o| ChatRoom : "unlocks"
+    ChatRoom ||--o{ Message : "contains"
+
+    User {
+        string id PK
+        string email
+        string role
+    }
+    Property {
+        string id PK
+        string ownerId FK
+        string city
+        int rent
+        string status
+    }
+    SeekerProfile {
+        string id PK
+        string userId FK
+        string type
+        int budgetMin
+        int budgetMax
+    }
+    CompatibilityScore {
+        string id PK
+        string seekerProfileId FK
+        string targetType
+        int score
+        string source
+    }
+    Interest {
+        string id PK
+        string fromUserId FK
+        string targetType
+        string status
+    }
+    Message {
+        string id PK
+        string chatRoomId FK
+        string senderId FK
+        string content
+    }
+```
+
+### Two matching directions, one scoring table
+- **Room search:** `SeekerProfile(type=ROOM_SEEKER)` → `Property` (owner's listing)
+- **Flatmate search:** `SeekerProfile(type=FLATMATE_SEEKER)` → another `SeekerProfile` (public flatmate post)
+- `CompatibilityScore.targetType` decides which foreign key (`targetPropertyId` or `targetSeekerProfileId`) is populated. Only one is ever non-null per row.
+- Same rule applies to `Interest` — it can target a `Property` or a `SeekerProfile`, never both.
+
+### Prisma Schema Definitions
 ```prisma
-// Main entities within Prisma schema (schema.prisma)
-
 model User {
-  id            String          @id @default(cuid())
-  email         String          @unique
-  passwordHash  String
-  name          String
-  role          Role            // TENANT, OWNER, ADMIN
-  isActive      Boolean         @default(true)
-  properties    Property[]
-  seekerProfile SeekerProfile?
-  sentInterests Interest[]      @relation("InterestFrom")
+  id               String    @id @default(cuid())
+  email            String    @unique
+  passwordHash     String
+  name             String
+  phone            String?
+  avatarUrl        String?
+  role             Role
+  isActive         Boolean   @default(true)
+  emailVerified    Boolean   @default(false)
+  emailVerifyToken String?
+  phoneVerified    Boolean   @default(false)
+  lastSeenAt       DateTime?
+  notificationPrefs Json?    // { interestEmail: true, chatEmail: false, matchEmail: true }
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  properties      Property[]
+  seekerProfile   SeekerProfile?
+  sentInterests   Interest[]       @relation("InterestFrom")
+  messages        Message[]
+  notifications   Notification[]
+  favorites       Favorite[]
+  reviewsGiven    Review[]         @relation("ReviewAuthor")
+  reviewsReceived Review[]         @relation("ReviewTarget")
+  savedSearches   SavedSearch[]
+  flags           Flag[]           @relation("FlagCreator")
+
+  @@index([role])
 }
 
 model Property {
@@ -100,51 +183,101 @@ model Property {
   ownerId          String
   owner            User              @relation(fields: [ownerId], references: [id])
   title            String
+  description      String
   city             String
+  address          String
+  lat              Float
+  lng              Float
   rent             Int
   availableFrom    DateTime
-  roomType         RoomType          // SINGLE_ROOM, SHARED_ROOM, ONE_BHK, etc.
-  furnishing       FurnishingStatus  // FURNISHED, SEMI_FURNISHED, UNFURNISHED
-  status           ListingStatus     @default(ACTIVE) // Hides from search if FILLED
+  roomType         RoomType
+  furnishing       FurnishingStatus
+  amenities        String[]          @default([])
+  rules            String[]          @default([])
+  petFriendly      Boolean           @default(false)
+  genderPreference GenderPreference  @default(ANY)
+  leaseLengthMonths Int?
+  status           ListingStatus     @default(ACTIVE)
+  viewCount        Int               @default(0)
+  interestCount    Int               @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  photos    PropertyPhoto[]
+  scores    CompatibilityScore[] @relation("ScoreOnProperty")
+  interests Interest[]           @relation("InterestOnProperty")
+  favorites Favorite[]
+  flags     Flag[]
+  views     PropertyView[]
+
+  @@index([city, status])
+  @@index([rent])
 }
 
 model SeekerProfile {
-  id            String        @id @default(cuid())
-  userId        String        @unique
-  user          User          @relation(fields: [userId], references: [id])
-  type          SeekerType    // ROOM_SEEKER, FLATMATE_SEEKER, BOTH
-  preferredCity String
-  budgetMin     Int
-  budgetMax     Int
-  moveInDate    DateTime
-}
+  id               String           @id @default(cuid())
+  userId           String           @unique
+  user             User             @relation(fields: [userId], references: [id])
+  type             SeekerType
+  preferredCity    String
+  preferredLat     Float?
+  preferredLng     Float?
+  budgetMin        Int
+  budgetMax        Int
+  moveInDate       DateTime
+  bio              String?
+  isPublic         Boolean          @default(true)
+  sleepSchedule    String?          
+  cleanliness      String?          
+  smoking          String?          
+  pets             String?          
+  workFromHome     Boolean?
+  genderPreference GenderPreference @default(ANY)
+  occupation       String?
+  age              Int?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
-model CompatibilityScore {
-  id                    String        @id @default(cuid())
-  seekerProfileId       String
-  targetType            TargetType    // PROPERTY, SEEKER_PROFILE
-  targetPropertyId      String?
-  targetSeekerProfileId String?
-  score                 Int           // 0 to 100
-  explanation           String
-  source                ScoreSource   // LLM, RULE_BASED
+  scoresAsOwner  CompatibilityScore[] @relation("ScoreOwner")
+  scoresAsTarget CompatibilityScore[] @relation("ScoreOnSeeker")
+  interestsIn    Interest[]           @relation("InterestOnSeeker")
+
+  @@index([preferredCity, type])
 }
 ```
 
 ---
 
+## 🎨 UI Design System & Component Guidelines
+
+### Principles
+- **Dual Audience visual distinction**: Color and iconography differentiate properties (Sky color palette) vs. flatmates (Orange color palette).
+- **Hero compatibility badge**: Circular progress ring with score, size scales, color-coded based on target margins.
+- **Max Width**: Max page container layout size set to `1280px` (`max-w-7xl`).
+
+### Palette Tokens
+| Accent / Token | Light Hex | Dark Hex | Application |
+|---|---|---|---|
+| `--primary` | `#4F46E5` | `#6366F1` | Links, CTAs, interactive states |
+| `--accent-room` | `#0EA5E9` | `#38BDF8` | Properties, room mode details |
+| `--accent-flatmate` | `#F97316` | `#FB923C` | Seeker, flatmate match views |
+| `--success` | `#16A34A` | `#22C55E` | Scores >= 80, accepted states |
+| `--warning` | `#D97706` | `#F59E0B` | Scores 50-79, pending actions |
+| `--muted` | `#64748B` | `#94A3B8` | Secondary labels, scores < 50 |
+| `--background` | `#FAFAFA` | `#0B0B0F` | Page backdrop container |
+| `--surface` | `#FFFFFF` | `#16161C` | Cards and elevated containers |
+| `--border` | `#E5E7EB` | `#27272E` | Layout grid dividers |
+
+### Motion Settings
+- **Page transitions**: Fade + 8px slide-up over `200ms` using Framer Motion.
+- **List items**: Stagger-in on filters mount (`40ms` stagger delay).
+- **Chat messages**: Slide-up-fade effect for incoming socket packets.
+
+---
+
 ## 🤖 AI Compatibility Scoring Engine (LLM Details)
 
-### 1. Prompt Specifications
-The system utilizes a structured system instructions format passed directly to **Gemini 2.5 Flash** models to compute matches.
-
-#### System Instruction
-```text
-You are a compatibility scoring engine for a rental platform. Score strictly
-based on budget fit and location match. Respond with JSON only, no markdown,
-no prose outside the JSON object.
-```
-
+### 1. Room Compatibility Prompt (Tenant → Property)
 #### User Prompt Template
 ```text
 Room listing:
@@ -163,26 +296,27 @@ Compute a compatibility score from 0 to 100 based on budget and location
 match. Return JSON: { "score": number, "explanation": string }
 ```
 
-### 2. Example I/O
-#### JSON Input Data
-```json
-{
-  "property": {
-    "city": "Pune",
-    "rent": 14000,
-    "roomType": "SINGLE_ROOM",
-    "furnishing": "SEMI_FURNISHED",
-    "availableFrom": "2026-08-01"
-  },
-  "seeker": {
-    "preferredCity": "Pune",
-    "budgetMin": 10000,
-    "budgetMax": 15000,
-    "moveInDate": "2026-08-05"
-  }
-}
+### 2. Flatmate Compatibility Prompt (Seeker → Seeker)
+#### User Prompt Template
+```text
+Person A is looking for a flatmate:
+- City: {a.preferredCity}
+- Budget: ₹{a.budgetMin} - ₹{a.budgetMax}/month
+- Move-in date: {a.moveInDate}
+- Bio: {a.bio}
+
+Person B is looking for a flatmate:
+- City: {b.preferredCity}
+- Budget: ₹{b.budgetMin} - ₹{b.budgetMax}/month
+- Move-in date: {b.moveInDate}
+- Bio: {b.bio}
+
+Compute a compatibility score from 0 to 100 based on budget overlap,
+location match, and move-in date proximity. Return JSON:
+{ "score": number, "explanation": string }
 ```
-#### JSON Output Payload
+
+### 3. Example Response JSON Payload
 ```json
 {
   "score": 88,
@@ -190,53 +324,112 @@ match. Return JSON: { "score": number, "explanation": string }
 }
 ```
 
-### 3. Rule-Based Fallback Scoring Logic
-If the Gemini API encounters rate limits, timeouts, or quota blocks, EassyNest immediately invokes a local, deterministic rule-based generator:
-```javascript
-// Rule-based algorithm implementation
-let locationScore = (seeker.preferredCity.toLowerCase() === property.city.toLowerCase()) ? 60 : 20;
+### 4. Deterministic Fallback Formula
+If the LLM fails, a local script evaluates values:
+- **Location Score:** `60` if preferredCity matches city (case-insensitive), else `20`.
+- **Budget Score:** `40 * overlapRatio` (overlap between seeker range and property cost).
+- **Date Penalty:** Max `-10` points if move-in dates differ by more than 30 days.
+- **Calculation:** `finalScore = clamp(locationScore + budgetScore - datePenalty, 0, 100)`.
 
-// Calculate percentage of budget range overlap
-let budgetOverlap = calculateOverlap(seeker.budgetMin, seeker.budgetMax, property.rent);
-let budgetScore = 40 * budgetOverlap;
-
-// Date proximity penalty (max 10 points penalty if > 30 days difference)
-let dateDiffDays = Math.abs(seeker.moveInDate - property.availableFrom) / (1000 * 60 * 60 * 24);
-let datePenalty = dateDiffDays > 30 ? 10 : Math.min(10, dateDiffDays * 0.33);
-
-let finalScore = Math.max(0, Math.min(100, Math.round(locationScore + budgetScore - datePenalty)));
-let explanation = "Score computed using budget and location match (AI scoring temporarily unavailable).";
-```
+### 5. Failure and Retry Queue Pipeline
+- An interaction enqueues a job inside **BullMQ**.
+- Gemini service attempts calculation with an **8s** timeout limit.
+- If it fails, BullMQ retries once after **2s** exponential delay.
+- If it fails again, the local fallback is run, marked as `source: RULE_BASED`, and the job is successfully resolved.
 
 ---
 
-## ✉️ Transactional Email & Messaging Gateway
+## 🚪 Application Route Map
 
-### Email Notification Rules
+### Frontend Navigation (Next.js App Router)
+| Route Path | Permission | Description |
+|---|---|---|
+| `/` | Public | Welcome screens with double pathways and active feature grids. |
+| `/login`, `/register` | Public | Custom register forms, visual role selectors. |
+| `/properties` | Public | Room board: Map/List double panel, filters (budget, room type). |
+| `/properties/[id]` | Public | Property description sheet, image carousel, compatibility badges. |
+| `/flatmates` | Public | Flatmate listings board with Map/List toggle panel. |
+| `/flatmates/[id]` | Public | Seeker description sheet, budget card stats. |
+| `/dashboard/tenant` | Tenant | Seeker profile metrics, sent interests, bookmark collections. |
+| `/dashboard/tenant/profile` | Tenant | Budget configurations, location parameters form. |
+| `/dashboard/owner` | Owner | Listing cards, Active/Filled toggles, received matches feed. |
+| `/dashboard/owner/properties/new` | Owner | Create property listings, interactive Leaflet coordinate selectors. |
+| `/interests` | Tenant/Owner | Single unified connection inbox with accept/decline controls. |
+| `/chat/[interestId]` | Match | Socket connection page, message inputs (only for accepted matches). |
+| `/notifications` | Auth | Central notifications list. |
+| `/admin` | Admin | Moderator stats, activity feeds, flag tables. |
+
+---
+
+## ⚡ API Endpoint Reference
+
+All routes are prefix-scoped to `/api/v1` with Auth headers: `Authorization: Bearer <JWT>`.
+
+### Authentication
+- `POST /auth/register` (Public) - Register new account. Body: `{ email, password, name, role }`.
+- `POST /auth/login` (Public) - Log in user. Returns tokens and roles profile.
+- `POST /auth/refresh` (Public) - Refresh JWT access token.
+- `POST /auth/logout` (Auth) - Terminate active session tokens.
+
+### Properties (Owner Actions)
+- `POST /properties` (Owner) - Create property listing.
+- `GET /properties/mine` (Owner) - Get own listings list.
+- `PATCH /properties/:id` (Owner) - Update property properties.
+- `PATCH /properties/:id/status` (Owner) - Toggle status (`ACTIVE` vs. `FILLED`).
+- `DELETE /properties/:id` (Owner) - Delete property.
+
+### Properties Search & Detail
+- `GET /properties` (Public) - Browse properties. Filters: `city, minRent, maxRent, roomType`.
+- `GET /properties/:id` (Public) - Get property details.
+- `GET /properties/:id/score` (Tenant) - Fetch computed property match scores.
+- `GET /seekers` (Public) - Browse flatmate posts.
+- `GET /seekers/:id` (Public) - Get seeker details page data.
+
+### Seeker Profile (Tenant Actions)
+- `POST /seeker-profile` (Tenant) - Create target profile.
+- `GET /seeker-profile/me` (Tenant) - Fetch own seeker settings.
+- `PATCH /seeker-profile/me` (Tenant) - Modify seeker parameters.
+
+### Connection Interests
+- `POST /interests` (Tenant) - Submit match request. Body: `{ targetType, targetPropertyId, targetSeekerProfileId }`.
+- `GET /interests/sent` (Tenant) - Sent match history list.
+- `GET /interests/received` (Owner/Tenant) - Incoming interest requests feed.
+- `PATCH /interests/:id/accept` (Owner/Tenant) - Accept connection (instantiates ChatRoom, fires emails).
+- `PATCH /interests/:id/decline` (Owner/Tenant) - Decline connection.
+
+### WebSocket Chat Gate Checks
+- Messages list history: `GET /chat/:interestId/messages`.
+- Live WebSocket channel (`Socket.IO` namespace gateway):
+  - `chat:join` (event) - Validates participant parameters, registers socket to room `chat:<roomId>`.
+  - `chat:message` (event) - Stores data in database, broadcasts message content block to participants.
+  - `chat:typing` (event) - Sends live typing indicator alerts (ephemeral).
+
+### Platform Operations & Flag Moderation
+- `GET /notifications` (Auth) - Active notifications.
+- `PATCH /notifications/:id/read` (Auth) - Mark alert as read.
+- `POST /favorites/:propertyId` (Tenant) - Bookmark listing card.
+- `GET /admin/users` (Admin) - Management user list table.
+- `PATCH /admin/users/:id/deactivate` (Admin) - Deactivate/soft-ban user.
+
+---
+
+## 🏁 Development Phases & Milestones
+
+EassyNest development plan:
+- **Phase 0 — Setup**: Database configuration, env configurations, initial Prisma migration, Redis connection wrapper.
+- **Phase 1 — Auth & Database Seeding**: JWT registration, hashing filters, seed scripts (1 Admin, 2 Owners, 3 Tenants, 5 Properties, 3 Profiles).
+- **Phase 2 — Listings & Profiles CRUD**: Property listings forms, Leaflet Map integration, image arrays, user location configurations.
+- **Phase 3 — AI Scoring Workers**: Gemini prompt mapping, BullMQ background jobs, rule fallbacks, sorted searches.
+- **Phase 4 — Interest Handshake**: Request matching models, Resend SMTP templates, push notifications storage.
+- **Phase 5 — WebSocket Chat gateway**: Socket.IO rooms, message database persistence, paginated Rest history.
+- **Phase 6 — Moderation & Polish**: Mark listings as filled (hides from search), Admin flag management feeds, responsiveness checks.
+
+---
+
+## ✉️ Transactional Email Notification Rules
 1. **High Match Interest:** When a Tenant expresses interest in a listing with a compatibility score **>= 80**, an email notification is automatically dispatched to the Owner alerting them of a high-value candidate.
 2. **Interest Decision:** When an Owner accepts or declines an interest request, an automated email goes out to the Tenant summarizing the decision.
 3. **Queue Resilience:** Email sending is executed via asynchronous Redis workers (BullMQ). If Resend or the SMTP provider fails, the task is retried automatically rather than failing the client request.
-
-### Real-Time Chat Security Gates
-- Chat channels are created **only** when an Interest moves to `ACCEPTED`.
-- A NestJS WebSocket Gateway manages persistent socket connections via **Socket.IO**.
-- Gateways perform validation check gates at the connection phase:
-  ```typescript
-  // Gate check before joining a chat room
-  const user = await this.jwtService.verifyAsync(token);
-  const isParticipant = await this.prisma.interest.findFirst({
-    where: {
-      id: interestId,
-      status: 'ACCEPTED',
-      OR: [
-        { fromUserId: user.id },
-        { targetProperty: { ownerId: user.id } },
-        { targetSeekerProfile: { userId: user.id } }
-      ]
-    }
-  });
-  if (!isParticipant) throw new WsException('Unauthorized chat participant');
-  ```
 
 ---
 
