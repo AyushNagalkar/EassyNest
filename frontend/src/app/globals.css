@@ -496,20 +496,7 @@ h1, h2, h3, h4, h5, h6 {
   -webkit-text-fill-color: transparent;
 }
 
-/* Smooth image loading */
+/* Smooth image loading transition */
 img {
-  transition: opacity 0.3s ease;
-}
-img[loading="lazy"] {
-  opacity: 0;
-}
-img[loading="lazy"].loaded,
-img[loading="lazy"][complete] {
-  opacity: 1;
-}
-/* Fallback: ensure images always show after a moment */
-@supports not (selector(:has(*))) {
-  img[loading="lazy"] {
-    opacity: 1;
-  }
+  transition: opacity 0.5s ease-in-out;
 }

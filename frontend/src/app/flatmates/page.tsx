@@ -121,6 +121,13 @@ export default function BrowseFlatmatesPage() {
 
       {/* Content */}
       <div className="flex-1 flex overflow-hidden">
+        {/* Map */}
+        <div className={`lg:flex-1 lg:block ${viewMode === 'list' ? 'hidden lg:block' : 'flex-1'}`}>
+          <div className="sticky top-16 h-[calc(100vh-4rem)] p-2">
+            <MapView markers={markers} className="h-full" />
+          </div>
+        </div>
+
         {/* List */}
         <div className={`flex-1 overflow-y-auto lg:max-w-[60%] ${viewMode === 'map' ? 'hidden lg:block' : ''}`}>
           <div className="mx-auto max-w-3xl px-4 py-6">
@@ -213,13 +220,6 @@ export default function BrowseFlatmatesPage() {
                 )}
               </>
             )}
-          </div>
-        </div>
-
-        {/* Map */}
-        <div className={`lg:flex-1 lg:block ${viewMode === 'list' ? 'hidden lg:block' : 'flex-1'}`}>
-          <div className="sticky top-16 h-[calc(100vh-4rem)] p-2">
-            <MapView markers={markers} className="h-full" />
           </div>
         </div>
       </div>

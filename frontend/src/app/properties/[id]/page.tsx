@@ -38,7 +38,7 @@ export default function PropertyDetailPage() {
         if (user?.role === 'TENANT') {
           try {
             const scoreData = await api.post(`/scores/property/${id}`);
-            if (scoreData?.score != null) setScore(scoreData);
+            if (scoreData?.score != null) setScore(scoreData.score);
           } catch {}
         }
       } catch (err) {

@@ -98,10 +98,10 @@ export default function AdminDashboardPage() {
 
   // Pre-formatted chart data
   const chartData = [
-    { name: 'Users', value: stats?.users || usersList.length },
-    { name: 'Listings', value: stats?.listings || listingsList.length },
-    { name: 'Interests', value: stats?.interests || 12 },
-    { name: 'Chats', value: stats?.activeChats || 8 },
+    { name: 'Users', value: stats?.users?.total || usersList.length },
+    { name: 'Listings', value: stats?.properties?.total || listingsList.length },
+    { name: 'Interests', value: stats?.interests?.total || 12 },
+    { name: 'Chats', value: stats?.interests?.accepted || stats?.messages || 8 },
   ];
 
   return (
@@ -146,22 +146,22 @@ export default function AdminDashboardPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="card p-5">
               <Users className="h-5 w-5 text-[var(--primary)] mb-2" />
-              <p className="text-2xl font-bold">{stats?.users || usersList.length}</p>
+              <p className="text-2xl font-bold">{stats?.users?.total || usersList.length}</p>
               <p className="text-xs text-[var(--foreground-muted)]">Registered Users</p>
             </div>
             <div className="card p-5">
               <Building className="h-5 w-5 text-[var(--accent-room)] mb-2" />
-              <p className="text-2xl font-bold">{stats?.listings || listingsList.length}</p>
+              <p className="text-2xl font-bold">{stats?.properties?.total || listingsList.length}</p>
               <p className="text-xs text-[var(--foreground-muted)]">Active Listings</p>
             </div>
             <div className="card p-5">
               <Heart className="h-5 w-5 text-[var(--accent-flatmate)] mb-2" />
-              <p className="text-2xl font-bold">{stats?.interests || 12}</p>
+              <p className="text-2xl font-bold">{stats?.interests?.total || 12}</p>
               <p className="text-xs text-[var(--foreground-muted)]">Total Connections</p>
             </div>
             <div className="card p-5">
               <Shield className="h-5 w-5 text-[var(--success)] mb-2" />
-              <p className="text-2xl font-bold">{stats?.activeChats || 8}</p>
+              <p className="text-2xl font-bold">{stats?.interests?.accepted || stats?.messages || 8}</p>
               <p className="text-xs text-[var(--foreground-muted)]">Active Chats</p>
             </div>
           </div>
