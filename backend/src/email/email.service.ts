@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as nodemailer from 'nodemailer';
 import { Resend } from 'resend';
 
 export interface EmailPayload {
@@ -12,38 +13,73 @@ export interface EmailPayload {
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private resend: Resend | null = null;
+  private transporter: nodemailer.Transporter | null = null;
   private from: string;
 
   constructor(private configService: ConfigService) {
-    const apiKey = this.configService.get<string>('email.resendApiKey');
     this.from = this.configService.get<string>('email.from') || 'EassyNest <noreply@eessynest.com>';
 
-    if (apiKey && apiKey !== 'your-resend-key') {
-      this.resend = new Resend(apiKey);
+    const smtpHost = this.configService.get<string>('email.smtpHost');
+    const smtpPort = this.configService.get<number>('email.smtpPort') || 587;
+    const smtpUser = this.configService.get<string>('email.smtpUser');
+    const smtpPass = this.configService.get<string>('email.smtpPass');
+
+    const resendApiKey = this.configService.get<string>('email.resendApiKey');
+
+    if (smtpHost && smtpUser && smtpPass) {
+      this.logger.log(`SMTP configured: host=${smtpHost}, port=${smtpPort}, user=${smtpUser}`);
+      this.transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      });
+    } else if (resendApiKey && resendApiKey !== 'your-resend-key') {
+      this.logger.log('Resend email service configured');
+      this.resend = new Resend(resendApiKey);
     } else {
-      this.logger.warn('Resend API key not configured — emails will be logged only');
+      this.logger.warn('No email service configured — emails will be logged only');
     }
   }
 
   async sendEmail(payload: EmailPayload): Promise<void> {
     this.logger.log(`📧 Sending email to ${payload.to}: ${payload.subject}`);
 
-    if (!this.resend) {
-      this.logger.log(`[DEV MODE] Email body:\n${payload.html}`);
+    if (this.transporter) {
+      try {
+        const mailOptions = {
+          from: this.from,
+          to: payload.to,
+          subject: payload.subject,
+          html: payload.html,
+        };
+        await this.transporter.sendMail(mailOptions);
+        this.logger.log(`Email successfully sent via SMTP to ${payload.to}`);
+      } catch (error) {
+        this.logger.error(`Failed to send email via SMTP to ${payload.to}:`, error);
+      }
       return;
     }
 
-    try {
-      await this.resend.emails.send({
-        from: this.from,
-        to: payload.to,
-        subject: payload.subject,
-        html: payload.html,
-      });
-      this.logger.log(`Email sent to ${payload.to}`);
-    } catch (error) {
-      this.logger.error(`Failed to send email to ${payload.to}:`, error);
+    if (this.resend) {
+      try {
+        await this.resend.emails.send({
+          from: this.from,
+          to: payload.to,
+          subject: payload.subject,
+          html: payload.html,
+        });
+        this.logger.log(`Email successfully sent via Resend to ${payload.to}`);
+      } catch (error) {
+        this.logger.error(`Failed to send email via Resend to ${payload.to}:`, error);
+      }
+      return;
     }
+
+    this.logger.log(`[DEV MODE] Email body:\n${payload.html}`);
   }
 
   // ---------- Email templates ----------

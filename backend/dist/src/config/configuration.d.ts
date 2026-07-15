@@ -28,6 +28,10 @@ declare const _default: () => {
     };
     email: {
         resendApiKey: string;
+        smtpHost: string;
+        smtpPort: number;
+        smtpUser: string;
+        smtpPass: string;
         from: string;
     };
 };

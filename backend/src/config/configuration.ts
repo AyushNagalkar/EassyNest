@@ -34,6 +34,10 @@ export default () => ({
 
   email: {
     resendApiKey: process.env.RESEND_API_KEY || '',
+    smtpHost: process.env.SMTP_HOST || '',
+    smtpPort: parseInt(process.env.SMTP_PORT || '587', 10),
+    smtpUser: process.env.SMTP_USER || '',
+    smtpPass: process.env.SMTP_PASS || '',
     from: process.env.EMAIL_FROM || 'EassyNest <noreply@eessynest.com>',
   },
 });

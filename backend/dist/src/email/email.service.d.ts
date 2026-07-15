@@ -8,6 +8,7 @@ export declare class EmailService {
     private configService;
     private readonly logger;
     private resend;
+    private transporter;
     private from;
     constructor(configService: ConfigService);
     sendEmail(payload: EmailPayload): Promise<void>;
