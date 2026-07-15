@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { CompatibilityBadge } from '@/components/ui/compatibility-badge';
 import {
   Search, Users, Building, ArrowRight, Sparkles, Shield, MessageCircle, MapPin,
+  Star, CheckCircle2,
 } from 'lucide-react';
 
 const fadeUp: any = {
@@ -47,11 +48,21 @@ const features = [
   },
 ];
 
+const trustItems = [
+  { label: '500+ Happy Renters', icon: Star },
+  { label: 'AI-Powered Matching', icon: Sparkles },
+  { label: 'Verified Listings', icon: CheckCircle2 },
+  { label: 'Real-Time Chat', icon: MessageCircle },
+];
+
 export default function LandingPage() {
   return (
     <div className="flex flex-col">
       {/* ====== HERO ====== */}
       <section className="relative hero-mesh overflow-hidden">
+        {/* Dot grid pattern */}
+        <div className="absolute inset-0 dot-grid opacity-40" />
+
         {/* Floating decorative orbs */}
         <div className="absolute top-20 left-[10%] w-72 h-72 rounded-full bg-[var(--primary)]/5 blur-3xl animate-float" />
         <div className="absolute bottom-10 right-[15%] w-96 h-96 rounded-full bg-[var(--accent-room)]/5 blur-3xl animate-float" style={{ animationDelay: '1s' }} />
@@ -64,7 +75,7 @@ export default function LandingPage() {
               variants={fadeUp}
               initial="hidden"
               animate="visible"
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-[var(--radius-full)] bg-[var(--primary-light)] text-[var(--primary)] text-sm font-medium mb-6"
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-[var(--radius-full)] bg-[var(--primary-light)] text-[var(--primary)] text-sm font-medium mb-6 border border-[var(--primary)]/10"
             >
               <Sparkles className="h-3.5 w-3.5" />
               AI-Powered Compatibility Matching
@@ -75,14 +86,14 @@ export default function LandingPage() {
               variants={fadeUp}
               initial="hidden"
               animate="visible"
-              className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-[var(--foreground)] leading-[1.1]"
+              className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[var(--foreground)] leading-[1.08]"
             >
               Find your perfect{' '}
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[var(--primary)] to-[#7C3AED]">
+              <span className="gradient-text bg-gradient-to-r from-[var(--primary)] to-[#7C3AED] animate-gradient-text">
                 room
               </span>{' '}
               or{' '}
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[var(--accent-flatmate)] to-[#EF4444]">
+              <span className="gradient-text bg-gradient-to-r from-[var(--accent-flatmate)] to-[#EF4444] animate-gradient-text" style={{ animationDelay: '2s' }}>
                 flatmate
               </span>
             </motion.h1>
@@ -116,7 +127,7 @@ export default function LandingPage() {
               variants={fadeUp}
               initial="hidden"
               animate="visible"
-              className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
+              className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4"
             >
               <Link href="/properties">
                 <Button variant="room" size="lg" className="gap-2 min-w-[200px]">
@@ -141,6 +152,25 @@ export default function LandingPage() {
             </motion.div>
           </div>
         </div>
+
+        {/* Trust bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8, duration: 0.5 }}
+          className="relative border-t border-[var(--border)]/50 bg-[var(--surface)]/50 backdrop-blur-sm"
+        >
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-center gap-6 sm:gap-10 flex-wrap">
+              {trustItems.map((item) => (
+                <div key={item.label} className="flex items-center gap-2 text-sm text-[var(--foreground-secondary)]">
+                  <item.icon className="h-4 w-4 text-[var(--primary)]" />
+                  <span className="font-medium">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
       </section>
 
       {/* ====== FEATURES ====== */}
@@ -169,10 +199,15 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
                 transition={{ delay: i * 0.1, duration: 0.4 }}
-                className="card card-hover p-6 lg:p-8 group"
+                className="card card-hover p-6 lg:p-8 group relative overflow-hidden"
               >
+                {/* Colored top accent */}
                 <div
-                  className="h-12 w-12 rounded-[var(--radius-lg)] flex items-center justify-center mb-5 transition-transform group-hover:scale-110"
+                  className="absolute top-0 left-0 right-0 h-[3px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  style={{ background: `linear-gradient(90deg, ${feature.color}, transparent)` }}
+                />
+                <div
+                  className="h-12 w-12 rounded-[var(--radius-lg)] flex items-center justify-center mb-5 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg"
                   style={{ backgroundColor: feature.bg }}
                 >
                   <feature.icon className="h-6 w-6" style={{ color: feature.color }} />
@@ -202,9 +237,15 @@ export default function LandingPage() {
             <h2 className="text-3xl sm:text-4xl font-bold text-[var(--foreground)]">
               How It Works
             </h2>
+            <p className="mt-4 text-lg text-[var(--foreground-secondary)] max-w-xl mx-auto">
+              Three simple steps to find your perfect match.
+            </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
+            {/* Connecting line (desktop) */}
+            <div className="hidden md:block absolute top-7 left-[20%] right-[20%] h-[2px] bg-gradient-to-r from-[var(--primary)]/20 via-[var(--accent-room)]/20 to-[var(--accent-flatmate)]/20" />
+
             {[
               {
                 step: '01',
@@ -231,10 +272,10 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
                 transition={{ delay: i * 0.15, duration: 0.4 }}
-                className="text-center"
+                className="relative text-center"
               >
                 <div
-                  className="inline-flex h-14 w-14 rounded-[var(--radius-xl)] items-center justify-center text-white font-bold text-lg mb-5"
+                  className="relative z-10 inline-flex h-14 w-14 rounded-[var(--radius-xl)] items-center justify-center text-white font-bold text-lg mb-5 shadow-lg"
                   style={{ background: item.gradient }}
                 >
                   {item.step}
@@ -250,8 +291,9 @@ export default function LandingPage() {
       </section>
 
       {/* ====== CTA FOOTER ====== */}
-      <section className="py-20 sm:py-24 hero-mesh">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+      <section className="py-20 sm:py-24 hero-mesh relative overflow-hidden">
+        <div className="absolute inset-0 dot-grid opacity-30" />
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -261,14 +303,14 @@ export default function LandingPage() {
             <h2 className="text-3xl sm:text-4xl font-bold text-[var(--foreground)]">
               Ready to find your nest?
             </h2>
-            <p className="mt-4 text-lg text-[var(--foreground-secondary)]">
+            <p className="mt-4 text-lg text-[var(--foreground-secondary)] max-w-lg mx-auto">
               Join thousands of people finding better shared living through smart matching.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/register">
-                <Button size="lg" className="min-w-[200px]">
+                <Button size="lg" className="min-w-[200px] gap-2">
                   Get Started Free
-                  <ArrowRight className="h-4 w-4 ml-2" />
+                  <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
               <Link href="/properties">
@@ -282,23 +324,56 @@ export default function LandingPage() {
       </section>
 
       {/* ====== FOOTER ====== */}
-      <footer className="border-t border-[var(--border)] bg-[var(--surface)] py-8">
+      <footer className="border-t border-[var(--border)] bg-[var(--surface)] py-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-[var(--foreground-muted)]">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+            {/* Brand */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-7 w-7 rounded-[var(--radius-sm)] bg-gradient-to-br from-[var(--primary)] to-[#7C3AED] flex items-center justify-center">
+                  <Building className="h-3.5 w-3.5 text-white" />
+                </div>
+                <span className="text-sm font-bold text-[var(--foreground)]">EassyNest</span>
+              </div>
+              <p className="text-xs text-[var(--foreground-muted)] leading-relaxed max-w-xs">
+                AI-powered room and flatmate finder. Smart matching for better shared living.
+              </p>
+            </div>
+
+            {/* Links */}
+            <div>
+              <p className="text-xs font-semibold text-[var(--foreground)] uppercase tracking-wider mb-3">Explore</p>
+              <div className="flex flex-col gap-2">
+                <Link href="/properties" className="text-sm text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors">
+                  Find a Room
+                </Link>
+                <Link href="/flatmates" className="text-sm text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors">
+                  Find a Flatmate
+                </Link>
+                <Link href="/register" className="text-sm text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors">
+                  List Property
+                </Link>
+              </div>
+            </div>
+
+            {/* Account */}
+            <div>
+              <p className="text-xs font-semibold text-[var(--foreground)] uppercase tracking-wider mb-3">Account</p>
+              <div className="flex flex-col gap-2">
+                <Link href="/login" className="text-sm text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors">
+                  Sign In
+                </Link>
+                <Link href="/register" className="text-sm text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors">
+                  Create Account
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-[var(--border)]">
+            <p className="text-xs text-[var(--foreground-muted)] text-center">
               © {new Date().getFullYear()} EassyNest. All rights reserved.
             </p>
-            <div className="flex items-center gap-6">
-              <Link href="/properties" className="text-sm text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors">
-                Rooms
-              </Link>
-              <Link href="/flatmates" className="text-sm text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors">
-                Flatmates
-              </Link>
-              <Link href="/login" className="text-sm text-[var(--foreground-secondary)] hover:text-[var(--foreground)] transition-colors">
-                Sign In
-              </Link>
-            </div>
           </div>
         </div>
       </footer>

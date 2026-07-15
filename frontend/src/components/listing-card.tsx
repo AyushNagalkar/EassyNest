@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { MapPin, Heart } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { CompatibilityBadge } from '@/components/ui/compatibility-badge';
 import { Badge } from '@/components/ui/badge';
+import { Avatar } from '@/components/ui/avatar';
 import { formatCurrency } from '@/lib/utils';
 
 interface Property {
@@ -53,7 +54,7 @@ export function ListingCard({ property, index = 0 }: ListingCardProps) {
               <img
                 src={photo}
                 alt={property.title}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
                 loading="lazy"
               />
             ) : (
@@ -61,6 +62,9 @@ export function ListingCard({ property, index = 0 }: ListingCardProps) {
                 <MapPin className="h-8 w-8" />
               </div>
             )}
+
+            {/* Gradient overlay on bottom for text contrast */}
+            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
 
             {/* Score overlay */}
             {score != null && (
@@ -80,13 +84,18 @@ export function ListingCard({ property, index = 0 }: ListingCardProps) {
                 {property.roomType?.replace('_', ' ')}
               </Badge>
             </div>
+
+            {/* Owner avatar */}
+            <div className="absolute bottom-3 right-3">
+              <Avatar src={property.owner?.avatarUrl} name={property.owner?.name || 'Owner'} size="sm" />
+            </div>
           </div>
 
           {/* Content */}
           <div className="p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-semibold text-[var(--foreground)] truncate group-hover:text-[var(--primary)] transition-colors">
+                <h3 className="text-sm font-semibold text-[var(--foreground)] truncate group-hover:text-[var(--primary)] transition-colors duration-200">
                   {property.title}
                 </h3>
                 <p className="text-xs text-[var(--foreground-muted)] flex items-center gap-1 mt-0.5">

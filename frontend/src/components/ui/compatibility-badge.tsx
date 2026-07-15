@@ -24,9 +24,9 @@ export function CompatibilityBadge({
   const popoverRef = useRef<HTMLDivElement>(null);
 
   const dimensions = {
-    sm: { outer: 44, stroke: 3, fontSize: '11px', labelSize: '8px' },
-    md: { outer: 64, stroke: 4, fontSize: '16px', labelSize: '10px' },
-    lg: { outer: 88, stroke: 5, fontSize: '22px', labelSize: '12px' },
+    sm: { outer: 44, stroke: 3, fontSize: '11px', labelSize: '8px', showLabel: false },
+    md: { outer: 64, stroke: 4, fontSize: '16px', labelSize: '10px', showLabel: true },
+    lg: { outer: 88, stroke: 5, fontSize: '22px', labelSize: '11px', showLabel: true },
   }[size];
 
   const radius = (dimensions.outer - dimensions.stroke) / 2;
@@ -58,6 +58,12 @@ export function CompatibilityBadge({
 
   return (
     <div className={`relative inline-flex ${className || ''}`} ref={popoverRef}>
+      {/* Glow effect */}
+      <div
+        className="absolute inset-0 rounded-full blur-lg opacity-20 transition-opacity duration-500"
+        style={{ backgroundColor: color, opacity: revealed ? 0.2 : 0 }}
+      />
+
       {/* Ring */}
       <button
         onClick={() => explanation && setShowPopover(!showPopover)}
@@ -95,23 +101,36 @@ export function CompatibilityBadge({
           />
         </svg>
 
-        {/* Score number */}
-        <motion.span
-          className="absolute font-bold"
-          style={{ fontSize: dimensions.fontSize, color }}
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: revealed ? 1 : 0, scale: revealed ? 1 : 0.5 }}
-          transition={{ duration: 0.4, delay: 0.8 }}
-        >
-          {score}
-        </motion.span>
+        {/* Score number + label */}
+        <div className="absolute flex flex-col items-center">
+          <motion.span
+            className="font-bold leading-none"
+            style={{ fontSize: dimensions.fontSize, color }}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: revealed ? 1 : 0, scale: revealed ? 1 : 0.5 }}
+            transition={{ duration: 0.4, delay: 0.8 }}
+          >
+            {score}
+          </motion.span>
+          {dimensions.showLabel && (
+            <motion.span
+              className="font-medium text-[var(--foreground-muted)] leading-none mt-0.5"
+              style={{ fontSize: dimensions.labelSize }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: revealed ? 1 : 0 }}
+              transition={{ duration: 0.3, delay: 1.1 }}
+            >
+              {getScoreLabel(score)}
+            </motion.span>
+          )}
+        </div>
 
         {/* Pulse ring on hover */}
         {explanation && (
           <span
-            className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
             style={{
-              boxShadow: `0 0 0 2px ${color}20`,
+              boxShadow: `0 0 0 3px ${color}15`,
             }}
           />
         )}
@@ -125,9 +144,13 @@ export function CompatibilityBadge({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="absolute z-50 top-full mt-2 left-1/2 -translate-x-1/2 w-72 p-4 rounded-[var(--radius-lg)] bg-[var(--surface-elevated)] border border-[var(--border)] shadow-[var(--shadow-elevated)]"
+            className="absolute z-50 top-full mt-3 left-1/2 -translate-x-1/2 w-72 p-4 rounded-[var(--radius-lg)] bg-[var(--surface-elevated)] border border-[var(--border)] shadow-[var(--shadow-elevated)]"
           >
             <div className="flex items-center gap-2 mb-2">
+              <span
+                className="h-2 w-2 rounded-full shrink-0"
+                style={{ backgroundColor: color }}
+              />
               <span
                 className="text-sm font-semibold"
                 style={{ color }}

@@ -9,6 +9,7 @@ import { MapView } from '@/components/map-view';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { StaggerContainer } from '@/components/page-transition';
@@ -68,6 +69,9 @@ export default function BrowsePropertiesPage() {
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [activeMarkerId, setActiveMarkerId] = useState<string | null>(null);
 
+  // Count active filters
+  const activeFilterCount = [city, minRent, maxRent, roomType].filter(Boolean).length;
+
   const fetchProperties = useCallback(async () => {
     setLoading(true);
     try {
@@ -113,30 +117,58 @@ export default function BrowsePropertiesPage() {
     ? [markers[0].lat, markers[0].lng]
     : [12.9716, 77.5946]; // Default Bangalore
 
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages: (number | '...')[] = [];
+    const total = meta.totalPages;
+    if (total <= 5) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (page > 3) pages.push('...');
+      for (let i = Math.max(2, page - 1); i <= Math.min(total - 1, page + 1); i++) {
+        pages.push(i);
+      }
+      if (page < total - 2) pages.push('...');
+      pages.push(total);
+    }
+    return pages;
+  };
+
   return (
     <div className="flex-1 flex flex-col">
       {/* Header + Filters */}
-      <div className="border-b border-[var(--border)] bg-[var(--surface)]">
+      <div className="page-header">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-[var(--foreground)]">Find a Room</h1>
               <p className="text-sm text-[var(--foreground-muted)]">
-                {loading ? 'Searching…' : `${meta.total} listings found`}
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={loading ? 'loading' : meta.total}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {loading ? 'Searching…' : `${meta.total} listings found`}
+                  </motion.span>
+                </AnimatePresence>
               </p>
             </div>
             <div className="flex items-center gap-2">
               {/* Mobile view toggle */}
-              <div className="flex lg:hidden border border-[var(--border)] rounded-[var(--radius)]">
+              <div className="flex lg:hidden border border-[var(--border)] rounded-[var(--radius)] overflow-hidden">
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 ${viewMode === 'list' ? 'bg-[var(--primary-light)] text-[var(--primary)]' : 'text-[var(--foreground-muted)]'}`}
+                  className={`p-2 transition-colors ${viewMode === 'list' ? 'bg-[var(--primary-light)] text-[var(--primary)]' : 'text-[var(--foreground-muted)] hover:bg-[var(--muted-light)]'}`}
                 >
                   <List className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => setViewMode('map')}
-                  className={`p-2 ${viewMode === 'map' ? 'bg-[var(--primary-light)] text-[var(--primary)]' : 'text-[var(--foreground-muted)]'}`}
+                  className={`p-2 transition-colors ${viewMode === 'map' ? 'bg-[var(--primary-light)] text-[var(--primary)]' : 'text-[var(--foreground-muted)] hover:bg-[var(--muted-light)]'}`}
                 >
                   <Map className="h-4 w-4" />
                 </button>
@@ -149,6 +181,9 @@ export default function BrowsePropertiesPage() {
               >
                 <SlidersHorizontal className="h-4 w-4" />
                 Filters
+                {activeFilterCount > 0 && (
+                  <Badge variant="default" size="sm" className="ml-0.5">{activeFilterCount}</Badge>
+                )}
               </Button>
             </div>
           </div>
@@ -200,7 +235,7 @@ export default function BrowsePropertiesPage() {
                       setCity(''); setMinRent(''); setMaxRent('');
                       setRoomType(''); setSortBy(user?.role === 'TENANT' ? 'score' : 'newest');
                     }}
-                    className="gap-1"
+                    className="gap-1 h-10"
                   >
                     <X className="h-3 w-3" /> Clear
                   </Button>
@@ -227,6 +262,20 @@ export default function BrowsePropertiesPage() {
                 icon={<Search className="h-8 w-8" />}
                 title="No properties found"
                 description="Try adjusting your filters or searching a different city."
+                action={
+                  activeFilterCount > 0 ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setCity(''); setMinRent(''); setMaxRent('');
+                        setRoomType(''); setSortBy('newest');
+                      }}
+                    >
+                      Clear All Filters
+                    </Button>
+                  ) : undefined
+                }
               />
             ) : (
               <>
@@ -238,23 +287,39 @@ export default function BrowsePropertiesPage() {
 
                 {/* Pagination */}
                 {meta.totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 mt-8">
+                  <div className="flex items-center justify-center gap-1.5 mt-8">
                     <Button
                       variant="outline"
-                      size="sm"
+                      size="icon"
                       disabled={page <= 1}
                       onClick={() => setPage(p => p - 1)}
+                      className="h-9 w-9"
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    <span className="text-sm text-[var(--foreground-secondary)]">
-                      Page {meta.page} of {meta.totalPages}
-                    </span>
+                    {getPageNumbers().map((p, i) =>
+                      p === '...' ? (
+                        <span key={`dots-${i}`} className="px-1 text-sm text-[var(--foreground-muted)]">…</span>
+                      ) : (
+                        <button
+                          key={p}
+                          onClick={() => setPage(p)}
+                          className={`h-9 w-9 rounded-[var(--radius)] text-sm font-medium transition-all duration-200 ${
+                            page === p
+                              ? 'bg-[var(--primary)] text-white shadow-sm'
+                              : 'text-[var(--foreground-secondary)] hover:bg-[var(--muted-light)]'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
                     <Button
                       variant="outline"
-                      size="sm"
+                      size="icon"
                       disabled={page >= meta.totalPages}
                       onClick={() => setPage(p => p + 1)}
+                      className="h-9 w-9"
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>

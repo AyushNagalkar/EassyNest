@@ -145,7 +145,7 @@
   --color-background-alt: var(--background-alt);
 
   --font-sans: var(--font-inter);
-  --font-heading: var(--font-inter);
+  --font-heading: var(--font-outfit);
 }
 
 /* ============================================================
@@ -163,6 +163,12 @@ body {
   font-family: var(--font-inter, 'Inter', system-ui, -apple-system, sans-serif);
   line-height: 1.6;
   min-height: 100dvh;
+}
+
+/* Headings use Outfit if available */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-outfit, var(--font-inter, 'Inter', system-ui, sans-serif));
+  letter-spacing: -0.025em;
 }
 
 /* Focus ring */
@@ -187,11 +193,29 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--muted);
 }
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--border-hover);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
 
 /* Selection */
 ::selection {
   background: var(--primary);
   color: var(--primary-foreground);
+}
+
+/* ============================================================
+   GLASS UTILITY — glassmorphic panels
+   ============================================================ */
+.glass {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+.dark .glass {
+  background: rgba(22, 22, 28, 0.78);
 }
 
 /* ============================================================
@@ -231,19 +255,119 @@ body {
   100% { stroke-dashoffset: var(--target-offset); }
 }
 
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes typing-dot {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-4px); }
+}
+
+@keyframes badge-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.6); opacity: 0; }
+}
+
 .animate-shimmer {
   background: linear-gradient(
     90deg,
     var(--muted-light) 25%,
-    var(--border) 50%,
-    var(--muted-light) 75%
+    var(--border) 37%,
+    var(--muted-light) 63%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  animation: shimmer 1.8s ease-in-out infinite;
 }
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.4s ease-out both;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out both;
+}
+
+.animate-gradient-text {
+  background-size: 200% auto;
+  animation: gradient-shift 4s ease-in-out infinite;
+}
+
+/* Typing indicator dots */
+.typing-dots span {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  animation: typing-dot 1.4s ease-in-out infinite;
+}
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+/* Badge pulse dot */
+.badge-dot {
+  position: relative;
+}
+.badge-dot::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--destructive);
+  border: 2px solid var(--surface);
+}
+.badge-dot-pulse::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--destructive);
+  animation: badge-pulse 2s ease-in-out infinite;
 }
 
 /* ============================================================
@@ -254,6 +378,15 @@ body {
   background-color: var(--background);
 }
 
+/* Dot grid pattern */
+.dot-grid {
+  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.dark .dot-grid {
+  background-image: radial-gradient(circle, var(--border) 0.5px, transparent 0.5px);
+}
+
 /* ============================================================
    CARD UTILITIES
    ============================================================ */
@@ -262,14 +395,121 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-base), transform var(--transition-base);
+  transition: box-shadow var(--transition-base),
+              transform var(--transition-base),
+              border-color var(--transition-base);
 }
 
 .card-hover:hover {
   box-shadow: var(--shadow-card-hover);
   transform: translateY(-2px);
+  border-color: var(--border-hover);
 }
 
 .card-ambient {
   box-shadow: var(--shadow-ambient);
+}
+
+/* ============================================================
+   PAGE-LEVEL UTILITIES
+   ============================================================ */
+
+/* Consistent page header bar */
+.page-header {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.page-header-glass {
+  border-bottom: 1px solid var(--border);
+}
+
+/* Stat cards */
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
+}
+.stat-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--stat-accent, var(--primary));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+.stat-card:hover::before {
+  opacity: 1;
+}
+
+/* Filter bar */
+.filter-bar {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 2px;
+}
+.filter-bar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Section divider with label */
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--foreground-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.section-divider::before,
+.section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ============================================================
+   MISC HELPERS
+   ============================================================ */
+
+/* Gradient text */
+.gradient-text {
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Smooth image loading */
+img {
+  transition: opacity 0.3s ease;
+}
+img[loading="lazy"] {
+  opacity: 0;
+}
+img[loading="lazy"].loaded,
+img[loading="lazy"][complete] {
+  opacity: 1;
+}
+/* Fallback: ensure images always show after a moment */
+@supports not (selector(:has(*))) {
+  img[loading="lazy"] {
+    opacity: 1;
+  }
 }

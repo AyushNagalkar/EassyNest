@@ -18,14 +18,14 @@ export function Skeleton({ className }: SkeletonProps) {
 
 export function SkeletonCard() {
   return (
-    <div className="card p-0 overflow-hidden">
+    <div className="card p-0 overflow-hidden animate-fade-in-up">
       <Skeleton className="h-48 w-full rounded-none" />
       <div className="p-4 space-y-3">
         <Skeleton className="h-5 w-3/4" />
         <Skeleton className="h-4 w-1/2" />
         <div className="flex items-center justify-between pt-2">
-          <Skeleton className="h-6 w-20" />
-          <Skeleton className="h-10 w-10 rounded-full" />
+          <Skeleton className="h-6 w-24" />
+          <Skeleton className="h-6 w-16 rounded-full" />
         </div>
       </div>
     </div>
@@ -40,6 +40,20 @@ export function SkeletonListItem() {
         <Skeleton className="h-4 w-2/3" />
         <Skeleton className="h-3 w-1/3" />
       </div>
+    </div>
+  );
+}
+
+export function SkeletonText({ lines = 3 }: { lines?: number }) {
+  const widths = ['w-full', 'w-5/6', 'w-4/6', 'w-3/4', 'w-2/3'];
+  return (
+    <div className="space-y-2.5">
+      {Array.from({ length: lines }).map((_, i) => (
+        <Skeleton
+          key={i}
+          className={cn('h-3.5', widths[i % widths.length])}
+        />
+      ))}
     </div>
   );
 }

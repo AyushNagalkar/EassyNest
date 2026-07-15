@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { MapView } from '@/components/map-view';
@@ -14,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import {
   MapPin, Calendar, Sofa, PawPrint, Users, ArrowLeft, Heart, Send, Eye,
+  ChevronRight, Home, CheckCircle2,
 } from 'lucide-react';
 
 export default function PropertyDetailPage() {
@@ -65,13 +67,16 @@ export default function PropertyDetailPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
-        <Skeleton className="h-80 w-full" />
+      <div className="mx-auto max-w-6xl px-4 py-8 space-y-6 animate-fade-in-up">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-80 w-full rounded-[var(--radius-lg)]" />
         <Skeleton className="h-8 w-2/3" />
         <Skeleton className="h-6 w-1/3" />
-        <div className="grid grid-cols-2 gap-4">
-          <Skeleton className="h-40" />
-          <Skeleton className="h-40" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <Skeleton className="h-24 rounded-[var(--radius-lg)]" />
+          <Skeleton className="h-24 rounded-[var(--radius-lg)]" />
+          <Skeleton className="h-24 rounded-[var(--radius-lg)]" />
+          <Skeleton className="h-24 rounded-[var(--radius-lg)]" />
         </div>
       </div>
     );
@@ -93,27 +98,50 @@ export default function PropertyDetailPage() {
       animate={{ opacity: 1 }}
       className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6"
     >
-      {/* Back */}
-      <button
-        onClick={() => router.back()}
-        className="flex items-center gap-1 text-sm text-[var(--foreground-secondary)] hover:text-[var(--foreground)] mb-4 transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" /> Back to listings
-      </button>
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-1.5 text-sm text-[var(--foreground-muted)] mb-5">
+        <Link href="/" className="hover:text-[var(--foreground)] transition-colors flex items-center gap-1">
+          <Home className="h-3.5 w-3.5" />
+          Home
+        </Link>
+        <ChevronRight className="h-3 w-3" />
+        <Link href="/properties" className="hover:text-[var(--foreground)] transition-colors">
+          Properties
+        </Link>
+        <ChevronRight className="h-3 w-3" />
+        <span className="text-[var(--foreground)] font-medium truncate max-w-[200px]">{property.title}</span>
+      </nav>
 
       {/* Photo gallery */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-8">
         {/* Main photo */}
-        <div className="lg:col-span-2 aspect-[16/10] rounded-[var(--radius-lg)] overflow-hidden bg-[var(--muted-light)]">
-          {photos[selectedPhoto]?.url ? (
-            <img
-              src={photos[selectedPhoto].url}
-              alt={property.title}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-[var(--foreground-muted)]">
-              <Eye className="h-12 w-12" />
+        <div className="lg:col-span-2 aspect-[16/10] rounded-[var(--radius-xl)] overflow-hidden bg-[var(--muted-light)] relative">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={selectedPhoto}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="w-full h-full"
+            >
+              {photos[selectedPhoto]?.url ? (
+                <img
+                  src={photos[selectedPhoto].url}
+                  alt={property.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-[var(--foreground-muted)]">
+                  <Eye className="h-12 w-12" />
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+          {/* Photo counter */}
+          {photos.length > 1 && (
+            <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-[var(--radius-full)] bg-black/50 text-white text-xs font-medium backdrop-blur-sm">
+              {selectedPhoto + 1} / {photos.length}
             </div>
           )}
         </div>
@@ -123,8 +151,8 @@ export default function PropertyDetailPage() {
             <button
               key={photo.id}
               onClick={() => setSelectedPhoto(i)}
-              className={`aspect-[16/10] rounded-[var(--radius)] overflow-hidden border-2 transition-all ${
-                i === selectedPhoto ? 'border-[var(--primary)]' : 'border-transparent hover:border-[var(--border-hover)]'
+              className={`aspect-[16/10] rounded-[var(--radius-lg)] overflow-hidden border-2 transition-all duration-200 ${
+                i === selectedPhoto ? 'border-[var(--primary)] shadow-md' : 'border-transparent hover:border-[var(--border-hover)] opacity-80 hover:opacity-100'
               }`}
             >
               <img src={photo.url} alt="" className="w-full h-full object-cover" />
@@ -135,15 +163,15 @@ export default function PropertyDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-8">
           <div>
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-[var(--foreground)]">
                   {property.title}
                 </h1>
-                <p className="text-[var(--foreground-secondary)] flex items-center gap-1 mt-1">
-                  <MapPin className="h-4 w-4" /> {property.address}, {property.city}
+                <p className="text-[var(--foreground-secondary)] flex items-center gap-1.5 mt-1.5">
+                  <MapPin className="h-4 w-4 text-[var(--foreground-muted)]" /> {property.address}, {property.city}
                 </p>
               </div>
               {score && (
@@ -155,24 +183,26 @@ export default function PropertyDetailPage() {
               )}
             </div>
 
-            <p className="text-3xl font-bold text-[var(--foreground)] mt-4">
+            <p className="text-3xl font-bold text-[var(--foreground)] mt-5">
               {formatCurrency(property.rent)}
               <span className="text-base font-normal text-[var(--foreground-muted)]">/month</span>
             </p>
           </div>
 
           {/* Details grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { icon: Sofa, label: 'Room Type', value: property.roomType?.replace('_', ' ') },
-              { icon: Sofa, label: 'Furnishing', value: property.furnishing?.replace('_', ' ') },
-              { icon: Calendar, label: 'Available', value: formatDate(property.availableFrom) },
-              { icon: PawPrint, label: 'Pets', value: property.petFriendly ? 'Allowed' : 'Not Allowed' },
+              { icon: Sofa, label: 'Room Type', value: property.roomType?.replace('_', ' '), color: 'var(--accent-room)' },
+              { icon: Sofa, label: 'Furnishing', value: property.furnishing?.replace('_', ' '), color: 'var(--primary)' },
+              { icon: Calendar, label: 'Available', value: formatDate(property.availableFrom), color: 'var(--success)' },
+              { icon: PawPrint, label: 'Pets', value: property.petFriendly ? 'Allowed' : 'Not Allowed', color: 'var(--accent-flatmate)' },
             ].map((item) => (
-              <div key={item.label} className="card p-3">
-                <item.icon className="h-4 w-4 text-[var(--foreground-muted)] mb-1" />
+              <div key={item.label} className="card p-4 group hover:border-[var(--border-hover)] transition-colors">
+                <div className="h-8 w-8 rounded-[var(--radius)] flex items-center justify-center mb-2" style={{ backgroundColor: `color-mix(in srgb, ${item.color} 12%, transparent)` }}>
+                  <item.icon className="h-4 w-4" style={{ color: item.color }} />
+                </div>
                 <p className="text-xs text-[var(--foreground-muted)]">{item.label}</p>
-                <p className="text-sm font-medium text-[var(--foreground)]">{item.value}</p>
+                <p className="text-sm font-semibold text-[var(--foreground)] mt-0.5">{item.value}</p>
               </div>
             ))}
           </div>
@@ -180,7 +210,7 @@ export default function PropertyDetailPage() {
           {/* Description */}
           {property.description && (
             <div>
-              <h2 className="text-lg font-semibold text-[var(--foreground)] mb-2">About</h2>
+              <h2 className="text-lg font-semibold text-[var(--foreground)] mb-3">About this property</h2>
               <p className="text-sm text-[var(--foreground-secondary)] leading-relaxed">{property.description}</p>
             </div>
           )}
@@ -188,10 +218,10 @@ export default function PropertyDetailPage() {
           {/* Amenities */}
           {property.amenities?.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold text-[var(--foreground)] mb-2">Amenities</h2>
+              <h2 className="text-lg font-semibold text-[var(--foreground)] mb-3">Amenities</h2>
               <div className="flex flex-wrap gap-2">
                 {property.amenities.map((a: string) => (
-                  <Badge key={a} variant="outline">{a}</Badge>
+                  <Badge key={a} variant="outline" size="md">{a}</Badge>
                 ))}
               </div>
             </div>
@@ -200,8 +230,8 @@ export default function PropertyDetailPage() {
           {/* Map */}
           {property.lat && property.lng && (
             <div>
-              <h2 className="text-lg font-semibold text-[var(--foreground)] mb-2">Location</h2>
-              <div className="h-64 rounded-[var(--radius-lg)] overflow-hidden">
+              <h2 className="text-lg font-semibold text-[var(--foreground)] mb-3">Location</h2>
+              <div className="h-64 rounded-[var(--radius-xl)] overflow-hidden border border-[var(--border)]">
                 <MapView
                   markers={[{ id: property.id, lat: property.lat, lng: property.lng, label: property.title }]}
                   center={[property.lat, property.lng]}
@@ -217,7 +247,7 @@ export default function PropertyDetailPage() {
         <div className="space-y-4">
           {/* Owner card */}
           <div className="card p-5">
-            <h3 className="text-sm font-medium text-[var(--foreground-muted)] mb-3">Listed by</h3>
+            <h3 className="text-xs font-semibold text-[var(--foreground-muted)] uppercase tracking-wider mb-3">Listed by</h3>
             <div className="flex items-center gap-3">
               <Avatar src={property.owner?.avatarUrl} name={property.owner?.name || 'Owner'} size="lg" />
               <div>
@@ -231,30 +261,43 @@ export default function PropertyDetailPage() {
 
           {/* Interest CTA */}
           {user?.role === 'TENANT' && (
-            <div className="card p-5">
-              {interestSent ? (
-                <div className="text-center">
-                  <div className="h-12 w-12 rounded-full bg-[var(--success-light)] flex items-center justify-center mx-auto mb-2">
-                    <Heart className="h-6 w-6 text-[var(--success)]" />
-                  </div>
-                  <p className="font-medium text-[var(--foreground)]">Interest Sent!</p>
-                  <p className="text-xs text-[var(--foreground-muted)] mt-1">The owner will review your request.</p>
-                </div>
-              ) : (
-                <Button
-                  onClick={handleExpressInterest}
-                  disabled={interestLoading}
-                  className="w-full gap-2"
-                  size="lg"
-                >
-                  {interestLoading ? (
-                    <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                  Express Interest
-                </Button>
-              )}
+            <div className="card p-5 lg:sticky lg:top-24">
+              <AnimatePresence mode="wait">
+                {interestSent ? (
+                  <motion.div
+                    key="sent"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-center py-2"
+                  >
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.1 }}
+                      className="h-14 w-14 rounded-full bg-[var(--success-light)] flex items-center justify-center mx-auto mb-3"
+                    >
+                      <CheckCircle2 className="h-7 w-7 text-[var(--success)]" />
+                    </motion.div>
+                    <p className="font-semibold text-[var(--foreground)]">Interest Sent!</p>
+                    <p className="text-xs text-[var(--foreground-muted)] mt-1">The owner will review your request.</p>
+                  </motion.div>
+                ) : (
+                  <motion.div key="cta">
+                    <p className="text-sm text-[var(--foreground-secondary)] mb-4">
+                      Interested in this property? Let the owner know.
+                    </p>
+                    <Button
+                      onClick={handleExpressInterest}
+                      loading={interestLoading}
+                      className="w-full gap-2"
+                      size="lg"
+                    >
+                      <Send className="h-4 w-4" />
+                      Express Interest
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
